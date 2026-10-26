@@ -41,7 +41,7 @@ export default async function OpportunitiesPage({
       <VStack gap={6} maxWidth={1100} className="mx-auto w-full">
         <PageHeader
           title="机会清单"
-          description="这里看助手从已配置信源带回的机会。想追问就回到对话。定时自动找新机会在任务页。下面的手动录入是辅助。每条都保留原始链接，一条可以属于多个赛道。"
+          description="这里看助手从已配置信源带回的机会。政策会先解读：写明相关片段和我们的机会，关系不大或过宽的不会进来。想追问就回到对话。每条都保留原始链接，一条可以属于多个赛道。"
         />
         <TrackHeat tracks={tracks.map((item) => ({ code: item.code, name: item.name }))} heat={heat} selected={track} />
         {leads.length === 0 ? (
@@ -70,7 +70,25 @@ export default async function OpportunitiesPage({
                       <Link href={lead.url} target="_blank" rel="noreferrer noopener">
                         {lead.url}
                       </Link>
-                      {lead.summary ? (
+                      {lead.relevant_excerpt || lead.opportunity_note ? (
+                        <VStack gap={1}>
+                          {lead.summary ? (
+                            <Text type="supporting" as="p">
+                              解读：{lead.summary}
+                            </Text>
+                          ) : null}
+                          {lead.relevant_excerpt ? (
+                            <Text type="supporting" as="p">
+                              相关片段：{lead.relevant_excerpt}
+                            </Text>
+                          ) : null}
+                          {lead.opportunity_note ? (
+                            <Text type="supporting" as="p">
+                              机会：{lead.opportunity_note}
+                            </Text>
+                          ) : null}
+                        </VStack>
+                      ) : lead.summary ? (
                         <Text type="supporting" as="p">
                           {lead.summary}
                         </Text>

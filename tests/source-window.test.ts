@@ -18,7 +18,24 @@ test("约一年内且能映射赛道的条目留下", () => {
   assert.equal(result.keep.length, 1);
   assert.equal(result.keep[0]?.track, "T10");
   assert.deepEqual(result.keep[0]?.tracks, ["T10"]);
+  assert.match(result.keep[0]?.excerpt ?? "", /资源池/);
+  assert.match(result.keep[0]?.opportunity ?? "", /资源池|入库/);
   assert.equal(result.droppedOld, 0);
+});
+
+test("过宽的园区或中小企业口径不入库", () => {
+  const result = selectOpportunityItems(
+    [
+      { title: "关于组织开展绿色工业园区推荐工作的通知", url: "https://example.com/20261001/park.html" },
+      { title: "关于组织开展创新型中小企业申报及复核工作的通知", url: "https://example.com/20261002/sme.html" },
+      { title: "关于开展中小企业数字化改造项目申报的通知", url: "https://example.com/20261003/digital.html" },
+    ],
+    365,
+    now,
+  );
+  assert.equal(result.keep.length, 1);
+  assert.equal(result.keep[0]?.track, "T09");
+  assert.equal(result.droppedBroad, 2);
 });
 
 test("超过回看窗口、硬件和未映射的条目不入库", () => {

@@ -33,7 +33,8 @@ export async function buildRuntimeContext(): Promise<string> {
     ...leads.map((lead) => {
       const side = lead.side && lead.side in SIDE_LABEL ? SIDE_LABEL[lead.side as Side] : "侧未知";
       const tracks = lead.track_codes.length ? lead.track_codes.join("、") : (lead.track_code ?? "未映射");
-      return `- ${lead.title}｜赛道 ${tracks}｜${side}｜站点 ${siteLabel(lead.site)}｜${lead.region ?? "地域未知"}｜骨架分 ${lead.score_total ?? "—"}｜${lead.url}`;
+      const reading = lead.opportunity_note ? `｜机会 ${lead.opportunity_note}` : "";
+      return `- ${lead.title}｜赛道 ${tracks}｜${side}｜站点 ${siteLabel(lead.site)}｜${lead.region ?? "地域未知"}｜骨架分 ${lead.score_total ?? "—"}${reading}｜${lead.url}`;
     }),
   ];
   return lines.join("\n");

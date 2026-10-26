@@ -117,7 +117,7 @@ export async function POST(request: Request) {
         },
       }),
       scan_sources: tool({
-        description: "到已启用的政策信源回看大约一年的列表页，把能映射到 T01–T10 的条目写入机会清单。只读列表页，不翻全站。执行过程记在任务页。",
+        description: "到已启用的政策信源回看大约一年的列表页。先解读，只把和工作室能力明显相关的政策写入机会清单，并保存摘要解读、相关片段、机会说明、赛道标签和原链接。过宽的不入库。只读列表标题，不翻全站。执行过程记在任务页。",
         inputSchema: z.object({
           lookback_days: z.number().int().min(30).max(800).optional().describe("回看天数，默认 365"),
           region: z.string().optional().describe("只看某个地域，如上海、北京"),
@@ -159,7 +159,9 @@ export async function POST(request: Request) {
           track_code: z.string().optional().describe("主赛道 T01–T10，不确定就省略"),
           track_codes: z.array(z.string()).optional().describe("可多选的 T01–T10。不确定就省略，由本地规则判断全部命中"),
           side: z.enum(["demand", "supply", "content"]).optional(),
-          summary: z.string().optional(),
+          summary: z.string().optional().describe("摘要解读：哪一部分相关"),
+          relevant_excerpt: z.string().optional().describe("相关片段，引用原文"),
+          opportunity_note: z.string().optional().describe("我们的机会：demo、接单或申报"),
         }),
         execute: async (input) => {
           try {
@@ -174,6 +176,8 @@ export async function POST(request: Request) {
               site: saved.lead.site,
               region: saved.lead.region,
               summary: saved.lead.summary,
+              relevant_excerpt: saved.lead.relevant_excerpt,
+              opportunity_note: saved.lead.opportunity_note,
               score_total: saved.lead.scores.total,
               origin: "manual",
             };

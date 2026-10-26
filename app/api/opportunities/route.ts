@@ -25,6 +25,8 @@ export async function POST(request: Request) {
             : undefined,
         side: "side" in body ? (typeof body.side === "string" ? body.side : null) : undefined,
         summary: "summary" in body ? (typeof body.summary === "string" ? body.summary : null) : undefined,
+        relevant_excerpt: "relevant_excerpt" in body ? (typeof body.relevant_excerpt === "string" ? body.relevant_excerpt : null) : undefined,
+        opportunity_note: "opportunity_note" in body ? (typeof body.opportunity_note === "string" ? body.opportunity_note : null) : undefined,
         scores: isScores(body.scores) ? body.scores : undefined,
       },
       "manual_entry",

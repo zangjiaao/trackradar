@@ -1,6 +1,7 @@
 import { MATERIAL_SITES, SIDE_LABEL, WEIGHTS, type MaterialSite, type Side, isSide } from "@/lib/domain";
 import { exclusionNote, guessTracks, type TrackDictionary } from "@/lib/guess";
 import { sortTrackCodes } from "@/lib/lead-tracks";
+import { readPolicy } from "@/lib/policy-read";
 import { skeletonScores, type ScoreParts } from "@/lib/scoring";
 
 export type OpportunityDraft = {
@@ -11,6 +12,8 @@ export type OpportunityDraft = {
   region: string | null;
   scores: ScoreParts;
   rationale: string;
+  relevant_excerpt: string;
+  opportunity_note: string;
   mode: "heuristic";
 };
 
@@ -58,10 +61,26 @@ export function heuristicDraft(input: {
   const summary = excluded
     ? excluded
     : [site && `来自${site}`, notes || title].filter(Boolean).join("。").slice(0, 400);
+  const reading = readPolicy(text, input.dictionaries);
   const rationale = excluded
     ? "本地规则判断这条落在排除方向，不映射赛道。分数只作排序起点。"
-    : `本地规则建议赛道 ${tracks.length ? tracks.join("、") : "未映射"}、${SIDE_LABEL[side]}。分数是骨架分，不是调研结论。`;
-  return { track_code: track, track_codes: tracks, side, summary, region, scores, rationale, mode: "heuristic" };
+    : reading.keep
+      ? `${reading.summary}${reading.opportunity}分数是骨架分，不是调研结论。`
+      : reading.reason === "broad"
+        ? "本地规则觉得这条口径偏宽，或和工作室能力关系不大。自动回看不会入库。若仍要留下，请自己写明机会。"
+        : `本地规则建议赛道 ${tracks.length ? tracks.join("、") : "未映射"}、${SIDE_LABEL[side]}。分数是骨架分，不是调研结论。`;
+  return {
+    track_code: track,
+    track_codes: tracks,
+    side,
+    summary,
+    region,
+    scores,
+    rationale,
+    relevant_excerpt: reading.keep ? reading.excerpt : "",
+    opportunity_note: reading.keep ? reading.opportunity : "",
+    mode: "heuristic",
+  };
 }
 
 export function normalizeSide(value: unknown): Side {
@@ -123,6 +142,8 @@ export type OpportunityFields = {
   track_codes?: string[] | null;
   side?: string | null;
   summary?: string | null;
+  relevant_excerpt?: string | null;
+  opportunity_note?: string | null;
   scores?: Partial<ScoreParts> | null;
 };
 
@@ -135,6 +156,8 @@ export type FinalOpportunity = {
   track_codes: string[];
   side: Side;
   summary: string;
+  relevant_excerpt: string;
+  opportunity_note: string;
   scores: ScoreParts;
 };
 
@@ -156,6 +179,8 @@ export function finalizeOpportunity(input: OpportunityFields, dictionaries?: Tra
   else tracks = [];
   const side = input.side === undefined ? draft.side : normalizeSide(input.side);
   const summary = (input.summary?.trim() || draft.summary).slice(0, 800);
+  const relevantExcerpt = (input.relevant_excerpt === undefined ? draft.relevant_excerpt : (input.relevant_excerpt ?? "")).trim().slice(0, 200);
+  const opportunityNote = (input.opportunity_note === undefined ? draft.opportunity_note : (input.opportunity_note ?? "")).trim().slice(0, 400);
   const regionText = input.region === undefined ? (draft.region ?? "") : input.region.trim().slice(0, 40);
   return {
     title,
@@ -164,6 +189,8 @@ export function finalizeOpportunity(input: OpportunityFields, dictionaries?: Tra
     region: regionText || null,
     track_code: tracks[0] ?? null,
     track_codes: tracks,
+    relevant_excerpt: relevantExcerpt,
+    opportunity_note: opportunityNote,
     side,
     summary,
     scores: input.scores ? applySuggestedScores(input.scores, draft.scores) : draft.scores,

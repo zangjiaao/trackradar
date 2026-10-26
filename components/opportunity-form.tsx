@@ -21,6 +21,8 @@ type Suggestion = {
   track_codes?: string[];
   side: Side;
   summary: string;
+  relevant_excerpt?: string;
+  opportunity_note?: string;
   region: string | null;
   scores: ScoreParts;
   rationale: string;
@@ -40,6 +42,8 @@ export function OpportunityForm({ tracks }: { tracks: TrackOption[] }) {
   const [selectedTracks, setSelectedTracks] = useState<string[]>([]);
   const [side, setSide] = useState<Side>("demand");
   const [summary, setSummary] = useState("");
+  const [excerpt, setExcerpt] = useState("");
+  const [opportunity, setOpportunity] = useState("");
   const [scores, setScores] = useState<ScoreParts | null>(null);
   const [rationale, setRationale] = useState<string | null>(null);
   const [mode, setMode] = useState<Suggestion["mode"] | null>(null);
@@ -54,6 +58,8 @@ export function OpportunityForm({ tracks }: { tracks: TrackOption[] }) {
     setSelectedTracks(codes);
     setSide(suggestion.side);
     setSummary(suggestion.summary);
+    setExcerpt(suggestion.relevant_excerpt ?? "");
+    setOpportunity(suggestion.opportunity_note ?? "");
     setRegion(suggestion.region ?? "");
     setScores(suggestion.scores);
     setRationale(suggestion.rationale);
@@ -95,7 +101,7 @@ export function OpportunityForm({ tracks }: { tracks: TrackOption[] }) {
           site,
           notes,
           region,
-          ...(assisted ? { track_codes: selectedTracks, side, summary, scores } : {}),
+          ...(assisted ? { track_codes: selectedTracks, side, summary, relevant_excerpt: excerpt, opportunity_note: opportunity, scores } : {}),
         }),
       });
       const body = (await response.json()) as { error?: string };
@@ -108,6 +114,8 @@ export function OpportunityForm({ tracks }: { tracks: TrackOption[] }) {
       setNotes("");
       setRegion("");
       setSummary("");
+      setExcerpt("");
+      setOpportunity("");
       setScores(null);
       setRationale(null);
       setMode(null);
@@ -150,7 +158,9 @@ export function OpportunityForm({ tracks }: { tracks: TrackOption[] }) {
             ))}
           </CheckboxList>
           <Selector label="供需侧" value={side} options={SIDE_OPTIONS} onChange={(value) => setSide(value as Side)} />
-          <TextArea label="摘要" rows={3} value={summary} width="100%" onChange={setSummary} />
+          <TextArea label="摘要解读" rows={3} value={summary} width="100%" onChange={setSummary} />
+          <TextArea label="相关片段" rows={2} value={excerpt} width="100%" onChange={setExcerpt} placeholder="原文里和工作室相关的那一句" />
+          <TextArea label="机会说明" rows={2} value={opportunity} width="100%" onChange={setOpportunity} placeholder="可落 demo、接单或申报" />
           {scores ? (
             <Text type="supporting" as="p">
               能力 {scores.capability} · 资金/窗口 {scores.funding_window} · 需求 {scores.demand_density} · 政策 {scores.policy_heat} · 竞争 {scores.competition} · demo {scores.demo_feasibility} · 合计 {scores.total}

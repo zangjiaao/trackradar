@@ -67,7 +67,7 @@ async function insertJob(
 async function saveLead(
   database: D1Database,
   source: SourceRow,
-  item: { title: string; url: string; track: string; tracks: string[] },
+  item: { title: string; url: string; track: string; tracks: string[]; summary: string; excerpt: string; opportunity: string },
   lookbackDays: number,
 ): Promise<"saved" | "duplicate"> {
   const existing = await database.prepare("SELECT id FROM leads WHERE url = ?").bind(item.url).first<{ id: string }>();
@@ -78,9 +78,9 @@ async function saveLead(
   await database
     .prepare(
       `INSERT INTO leads (
-         id, source_id, track_code, title, url, summary, region,
+         id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region,
          score_capability, score_funding, score_demand, score_policy, score_competition, score_demo, score_total, origin
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'agent')`,
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'agent')`,
     )
     .bind(
       id,
@@ -88,7 +88,9 @@ async function saveLead(
       tracks[0] ?? item.track,
       item.title,
       item.url,
-      `信源回看约 ${lookbackDays} 天，映射 ${tracks.join("、")}。分数是骨架分，不是调研结论。`,
+      item.summary || `回看约 ${lookbackDays} 天，映射 ${tracks.join("、")}。`,
+      item.excerpt,
+      item.opportunity,
       source.region,
       scores.capability,
       scores.funding_window,
@@ -167,6 +169,7 @@ export async function runSourceScan(database: D1Database, request: ScanRequest):
       `过期 ${selected.droppedOld}`,
       `排除 ${selected.droppedExcluded}`,
       `未映射 ${selected.droppedUnmapped}`,
+      `过宽 ${selected.droppedBroad}`,
       `新写入 ${saved}`,
       duplicate ? `已有 ${duplicate}` : "",
       row.source.list_url,
@@ -179,7 +182,7 @@ export async function runSourceScan(database: D1Database, request: ScanRequest):
 
   const who = request.taskName ? `${triggerLabel(request.trigger)}「${request.taskName}」` : triggerLabel(request.trigger);
   const summary = sources.length
-    ? `${who}｜回看 ${lookbackDays} 天｜访问 ${details.length} 个信源｜新写入 ${savedTotal} 条。只读列表页，不翻全站。`
+    ? `${who}｜回看 ${lookbackDays} 天｜访问 ${details.length} 个信源｜新写入 ${savedTotal} 条。只留下能落到工作室能力的政策，并写了解读、相关片段和机会。过宽的不入库。只读列表页标题，不翻全站。`
     : `${who}｜没有可访问的启用信源${hints.length ? `（地域：${hints.join("、")}）` : ""}。先到配置里打开信源。`;
   const status = sources.length === 0 ? "skipped" : details.some((item) => item.status === "done") ? "done" : details.every((item) => item.status === "skipped") ? "skipped" : "failed";
   await insertJob(database, { kind: "task_run", status, message: summary, taskId: request.taskId });

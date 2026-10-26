@@ -2,7 +2,8 @@ import type { KeywordSetRow, LeadRow, ParsedSample, Platform, PromptRow, SampleR
 import { isPlatform, isSide } from "./domain";
 import { getDb } from "./db";
 import { fetchPolicyList } from "./fetch-list";
-import { guessTrack, guessTracks, keywordList, type TrackDictionary } from "./guess";
+import { guessTrack, keywordList, type TrackDictionary } from "./guess";
+import { readPolicy } from "./policy-read";
 import { isTrackCode, sortTrackCodes, writeLeadTracks } from "./lead-tracks";
 import { skeletonScores } from "./scoring";
 
@@ -69,7 +70,7 @@ export async function listLeads(limit = 50, trackCode?: string | null): Promise<
   const statement = track
     ? database
         .prepare(
-          `SELECT id, source_id, track_code, title, url, summary, region, side, site, score_total, origin, created_at
+          `SELECT id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, side, site, score_total, origin, created_at
            FROM leads
            WHERE id IN (SELECT lead_id FROM lead_tracks WHERE track_code = ?)
               OR track_code = ?
@@ -78,7 +79,7 @@ export async function listLeads(limit = 50, trackCode?: string | null): Promise<
         .bind(track, track, limit)
     : database
         .prepare(
-          `SELECT id, source_id, track_code, title, url, summary, region, side, site, score_total, origin, created_at
+          `SELECT id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, side, site, score_total, origin, created_at
            FROM leads ORDER BY created_at DESC LIMIT ?`,
         )
         .bind(limit);
@@ -260,15 +261,17 @@ async function insertLeadsFromList(source: SourceRow, items: { title: string; ur
   for (const item of items) {
     const existing = await database.prepare("SELECT id FROM leads WHERE url = ?").bind(item.url).first<{ id: string }>();
     if (existing) continue;
-    const tracks = guessTracks(item.title, dictionaries);
+    const reading = readPolicy(item.title, dictionaries);
+    if (!reading.keep) continue;
+    const tracks = reading.tracks;
     const scores = skeletonScores(item.title, tracks[0] ?? null);
     const id = crypto.randomUUID();
     await database
       .prepare(
         `INSERT INTO leads (
-           id, source_id, track_code, title, url, summary, region, score_capability, score_funding,
+           id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, score_capability, score_funding,
            score_demand, score_policy, score_competition, score_demo, score_total, origin
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'crawl')`,
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'crawl')`,
       )
       .bind(
         id,
@@ -276,7 +279,9 @@ async function insertLeadsFromList(source: SourceRow, items: { title: string; ur
         tracks[0] ?? null,
         item.title,
         item.url,
-        tracks.length ? `列表页骨架抓取，映射 ${tracks.join("、")}。分数为启发式骨架分。` : "列表页骨架抓取，分数为启发式骨架分。",
+        reading.summary,
+        reading.excerpt,
+        reading.opportunity,
         source.region,
         scores.capability,
         scores.funding_window,

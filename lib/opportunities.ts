@@ -13,9 +13,9 @@ export async function saveOpportunity(input: OpportunityFields, kind: "manual_en
   await database
     .prepare(
       `INSERT INTO leads (
-         id, source_id, track_code, title, url, summary, region, side, site,
+         id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, side, site,
          score_capability, score_funding, score_demand, score_policy, score_competition, score_demo, score_total, origin
-       ) VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual')`,
+       ) VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual')`,
     )
     .bind(
       id,
@@ -23,6 +23,8 @@ export async function saveOpportunity(input: OpportunityFields, kind: "manual_en
       lead.title,
       lead.url,
       lead.summary,
+      lead.relevant_excerpt || null,
+      lead.opportunity_note || null,
       lead.region,
       lead.side,
       lead.site,

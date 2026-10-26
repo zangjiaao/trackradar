@@ -27,17 +27,25 @@ export function keywordList(keywords: string): string[] {
     .slice(0, 20);
 }
 
-/** 返回全部命中的赛道，顺序仍是更具体的在前。词典里写了关键词就用词典，留空则用内置词。 */
-export function guessTracks(text: string, dictionaries?: TrackDictionary[]): string[] {
+export type TrackMatch = { code: string; words: string[] };
+
+/** 返回命中的赛道和具体的词。词典里写了关键词就用词典，留空则用内置词。 */
+export function matchTrackWords(text: string, dictionaries?: TrackDictionary[]): TrackMatch[] {
   if (EXCLUDED.test(text)) return [];
   const custom = new Map((dictionaries ?? []).map((item) => [item.code, keywordList(item.keywords)]));
-  const found: string[] = [];
+  const found: TrackMatch[] = [];
   for (const rule of RULES) {
     const override = custom.get(rule.code);
     const words = override && override.length > 0 ? override : rule.words;
-    if (words.some((word) => word && text.includes(word))) found.push(rule.code);
+    const hits = words.filter((word) => word && text.includes(word));
+    if (hits.length > 0) found.push({ code: rule.code, words: hits });
   }
   return found;
+}
+
+/** 返回全部命中的赛道，顺序仍是更具体的在前。 */
+export function guessTracks(text: string, dictionaries?: TrackDictionary[]): string[] {
+  return matchTrackWords(text, dictionaries).map((item) => item.code);
 }
 
 export function guessTrack(text: string, dictionaries?: TrackDictionary[]): string | null {

@@ -93,6 +93,8 @@ export type LeadRow = {
   title: string;
   url: string;
   summary: string | null;
+  relevant_excerpt: string | null;
+  opportunity_note: string | null;
   region: string | null;
   side: string | null;
   site: string | null;

@@ -23,6 +23,8 @@ const suggestionSchema = z.object({
   competition: z.number(),
   demo_feasibility: z.number(),
   rationale: z.string(),
+  relevant_excerpt: z.string(),
+  opportunity_note: z.string(),
 });
 
 export type SuggestResult = Omit<OpportunityDraft, "mode"> & { mode: "heuristic" | "model" };
@@ -55,6 +57,7 @@ export async function suggestOpportunity(input: {
         "汽车、机器人、具身智能硬件、芯片、服务器制造必须把 track_codes 设为空数组，track_code 设为 null。",
         "side 只能是 demand、supply、content。",
         "各分项是 0–100 的建议，不要计算总分。",
+        "摘要解读要写明哪一部分和工作室能力相关。relevant_excerpt 引用用户给出的原文片段。opportunity_note 写我们的机会，可以是 demo、接单或申报。关系不大或只有过宽口径时，这两项留空。",
         "不要编造用户没有给出的链接，也不要声称已经爬取站点。",
         `赛道：${dictionary.map((track) => `${track.code} ${track.name}${track.keywords ? `（${track.keywords.replaceAll("\n", "、")}）` : ""}`).join("；")}`,
         `常用站点说明：${sites}`,
@@ -88,6 +91,8 @@ export async function suggestOpportunity(input: {
         },
         base.scores,
       ),
+      relevant_excerpt: excluded ? "" : (object.relevant_excerpt || base.relevant_excerpt).trim().slice(0, 200),
+      opportunity_note: excluded ? "" : (object.opportunity_note || base.opportunity_note).trim().slice(0, 400),
       rationale: `${object.rationale} 分数已按默认权重重算，是排序建议，不是调研结论。`.slice(0, 500),
       mode: "model",
     };
