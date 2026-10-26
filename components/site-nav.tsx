@@ -16,7 +16,7 @@ const LINKS = [
 export function SiteNav() {
   const pathname = usePathname();
   return (
-    <header className="border-b bg-background/90 backdrop-blur">
+    <header className="shrink-0 border-b bg-background/90 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <Link href="/" className="flex items-baseline gap-2">
           <span className="text-lg font-semibold tracking-tight">赛道雷达</span>

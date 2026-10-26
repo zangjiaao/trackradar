@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SiteNav } from "@/components/site-nav";
+import { AppFrame } from "@/components/app-frame";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -11,8 +11,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="zh-CN">
       <body>
-        <SiteNav />
-        <main className="mx-auto w-full max-w-6xl px-4 py-8">{children}</main>
+        <AppFrame>{children}</AppFrame>
       </body>
     </html>
   );
