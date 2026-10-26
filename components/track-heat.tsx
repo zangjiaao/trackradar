@@ -17,11 +17,13 @@ export function TrackHeat({
   heat,
   selected,
   sort,
+  base = "/",
 }: {
   tracks: { code: string; name: string }[];
   heat: Record<string, HeatStat>;
   selected: string | null;
   sort: LeadSort;
+  base?: "/" | "/cases";
 }) {
   const router = useRouter();
   const options = [
@@ -38,7 +40,7 @@ export function TrackHeat({
         label="赛道"
         value={selected ?? "all"}
         options={options}
-        onChange={(value) => router.push(opportunityHref(!value || value === "all" ? null : value, sort))}
+        onChange={(value) => router.push(opportunityHref(!value || value === "all" ? null : value, sort, base))}
         width="100%"
       />
     </div>

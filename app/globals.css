@@ -97,6 +97,17 @@
     flex-shrink: 0;
   }
 
+  @media (max-width: 840px) {
+    nav.astryx-top-nav {
+      column-gap: 0.15rem;
+    }
+
+    nav.astryx-top-nav .astryx-top-nav-item {
+      font-size: 0.8125rem;
+      padding-inline: 0.35rem;
+    }
+  }
+
   .chat-md {
     min-width: 0;
     overflow-wrap: anywhere;

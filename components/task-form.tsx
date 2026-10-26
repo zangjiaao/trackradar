@@ -40,7 +40,7 @@ export function TaskForm() {
         setMessage(body.error ?? "添加失败");
         return;
       }
-      setMessage("任务已添加。到点会按已启用信源回看，并把符合赛道的条目写入机会清单。");
+      setMessage("任务已添加。到点会按已启用信源回看，并把符合赛道的政策写入政策页。");
       router.refresh();
     } finally {
       setPending(false);

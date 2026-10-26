@@ -27,6 +27,7 @@ export async function POST(request: Request) {
         summary: "summary" in body ? (typeof body.summary === "string" ? body.summary : null) : undefined,
         relevant_excerpt: "relevant_excerpt" in body ? (typeof body.relevant_excerpt === "string" ? body.relevant_excerpt : null) : undefined,
         opportunity_note: "opportunity_note" in body ? (typeof body.opportunity_note === "string" ? body.opportunity_note : null) : undefined,
+        signal: typeof body.signal === "string" ? body.signal : undefined,
         scores: isScores(body.scores) ? body.scores : undefined,
       },
       "manual_entry",
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
     return Response.json({ id: saved.id, lead: saved.lead });
   } catch (error) {
     const message = error instanceof Error ? error.message : "写入机会失败";
-    const status = /已经在机会清单|请填写|链接需要/.test(message) ? 400 : 500;
+    const status = /已经在清单|请填写|链接需要/.test(message) ? 400 : 500;
     return Response.json({ error: message }, { status });
   }
 }

@@ -9,7 +9,7 @@ export type TaskInput = {
   enabled: boolean;
 };
 
-export const DEFAULT_INSTRUCTION = "到已配置信源回看约一年，把能映射到 T01–T10 的条目写入机会清单。";
+export const DEFAULT_INSTRUCTION = "到已配置信源回看约一年，把能映射到 T01–T10 的政策留下来。";
 
 export function parseTaskInput(body: Record<string, unknown>, partial = false): TaskInput {
   const name = typeof body.name === "string" ? body.name.trim().slice(0, 40) : "";

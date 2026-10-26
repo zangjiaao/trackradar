@@ -15,7 +15,7 @@ export function ScanSourcesButton() {
 
   async function run() {
     setPending(true);
-    setMessage("正在从已启用信源拉取近一年内容，解读后写入机会清单。");
+    setMessage("正在从已启用信源拉取近一年政策。");
     try {
       const response = await fetch("/api/scan", {
         method: "POST",
@@ -38,12 +38,12 @@ export function ScanSourcesButton() {
   return (
     <VStack gap={1}>
       <HStack gap={2} wrap="wrap" vAlign="center">
-        <Button label={pending ? "正在拉取" : "从信源拉取近一年机会"} variant="primary" isDisabled={pending} onClick={() => void run()} />
+        <Button label={pending ? "正在拉取" : "从信源拉取近一年政策"} variant="primary" isDisabled={pending} onClick={() => void run()} />
         <Link href="/tasks">执行记录</Link>
-        <Link href="/">机会清单</Link>
+        <Link href="/">政策</Link>
       </HStack>
       <Text type="supporting" as="p">
-        按配置里已启用的信源去拉政策/信息，解读后写入机会清单。关系不大或过宽的不会进来。
+        按配置里已启用的信源去拉政策，解读后写入政策页。关系不大或过宽的不会进来。
       </Text>
       {message ? (
         <Text type="supporting" as="p">

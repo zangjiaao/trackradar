@@ -15,7 +15,10 @@ export default function ChatPage() {
           先在配置里放好模型和信源。没有模型密钥时，拉取仍按本地规则筛选，对话本身不会请求模型。
         </Text>
         <Text type="supporting" as="p">
-          把政策福利、门槛和已录入的猪八戒、Fiverr 案例放在一起问，助手会建议下一步做什么方向的 demo：能拿去跟客户秀能力，尽量贴着政策，并看出 UI/UX 品位。工作室现在先接小单，有了案例再冲大企业和政府。
+          可让我对照政策与案例，给出我们现在做什么有助于发展的建议。
+        </Text>
+        <Text type="supporting" as="p">
+          也可以问下一步做什么方向的 demo：能拿去跟客户秀能力，尽量贴着政策，并看出 UI/UX 品位。工作室现在先接小单，有了案例再冲大企业和政府。
         </Text>
         <ScanSourcesButton />
       </VStack>

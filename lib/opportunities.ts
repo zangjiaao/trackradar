@@ -9,14 +9,14 @@ export async function saveOpportunity(input: OpportunityFields, kind: "manual_en
   const lead = finalizeOpportunity(input, await loadTrackDictionaries());
   const database = getDb();
   const existing = await database.prepare("SELECT id FROM leads WHERE url = ?").bind(lead.url).first<{ id: string }>();
-  if (existing) throw new Error("这条链接已经在机会清单里。");
+  if (existing) throw new Error("这条链接已经在清单里。");
   const id = crypto.randomUUID();
   await database
     .prepare(
       `INSERT INTO leads (
-         id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, side, site, published_at,
-         score_capability, score_funding, score_demand, score_policy, score_competition, score_demo, score_total, origin
-       ) VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual')`,
+         id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, side, site, signal, published_at,
+         score_capability, score_funding, score_demand, score_policy, score_competition, score_demo, score_total, origin, kind
+       ) VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', 'case')`,
     )
     .bind(
       id,
@@ -29,6 +29,7 @@ export async function saveOpportunity(input: OpportunityFields, kind: "manual_en
       lead.region,
       lead.side,
       lead.site,
+      lead.signal,
       publishedDay(lead.title, lead.url),
       lead.scores.capability,
       lead.scores.funding_window,
@@ -40,7 +41,7 @@ export async function saveOpportunity(input: OpportunityFields, kind: "manual_en
     )
     .run();
   await writeLeadTracks(database, id, lead.track_codes);
-  const verb = kind === "manual_entry" ? "录入机会" : "对话写入机会";
+  const verb = kind === "manual_entry" ? "录入案例" : "对话写入案例";
   await recordWork({ kind, status: "done", message: `${verb}：${lead.title}｜${lead.url}` });
   return { id, lead };
 }

@@ -83,8 +83,8 @@ async function saveLead(
       `INSERT INTO leads (
          id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, published_at,
          studio_angle, subsidy_note, participation_note, who_can_apply, contact_note, window_note,
-         score_capability, score_funding, score_demand, score_policy, score_competition, score_demo, score_total, origin
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'agent')`,
+         score_capability, score_funding, score_demand, score_policy, score_competition, score_demo, score_total, origin, kind
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'agent', 'policy')`,
     )
     .bind(
       id,

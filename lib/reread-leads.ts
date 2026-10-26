@@ -2,8 +2,9 @@ import { fetchPolicyArticle } from "@/lib/fetch-article";
 import { readPolicy } from "@/lib/policy-read";
 import { loadTrackDictionaries } from "@/lib/queries";
 
-const SHALLOW = `SELECT id, title, url, origin FROM leads
-  WHERE origin IN ('agent', 'crawl', 'seed')
+const SHALLOW = `SELECT id, title, url, origin, kind FROM leads
+  WHERE kind = 'policy'
+    AND origin IN ('agent', 'crawl', 'seed')
     AND (studio_angle IS NULL OR length(trim(studio_angle)) = 0)
   ORDER BY created_at DESC
   LIMIT ?`;
@@ -16,11 +17,18 @@ export async function rereadLeads(
   const limit = Math.max(1, Math.min(12, input.limit ?? 8));
   const url = input.url?.trim() || "";
   const selected = url
-    ? await database.prepare("SELECT id, title, url, origin FROM leads WHERE url = ?").bind(url).all<{ id: string; title: string; url: string; origin: string }>()
-    : await database.prepare(SHALLOW).bind(limit).all<{ id: string; title: string; url: string; origin: string }>();
+    ? await database
+        .prepare("SELECT id, title, url, origin, kind FROM leads WHERE url = ?")
+        .bind(url)
+        .all<{ id: string; title: string; url: string; origin: string; kind: string }>()
+    : await database.prepare(SHALLOW).bind(limit).all<{ id: string; title: string; url: string; origin: string; kind: string }>();
   const notes: string[] = [];
   let updated = 0;
   for (const lead of selected.results) {
+    if (lead.kind === "case") {
+      notes.push(`${lead.title}：案例不按政策正文重写`);
+      continue;
+    }
     const article = await fetchPolicyArticle(lead.url);
     if (!article || article.text.length < 180) {
       notes.push(`${lead.title}：没有读到正文`);

@@ -20,13 +20,13 @@ export default async function TasksPage() {
       <VStack gap={4} className="page-column">
         <PageHeader
           title="任务"
-          description="添加每天或每周一的定时任务，让助手按配置里已启用的信源自动找新机会。下面同时留下每次去过哪些信源、写入了多少条。对话里的回看也记在这里。"
+          description="添加每天或每周一的定时任务，让助手按配置里已启用的信源把新政策写入政策页。下面同时留下每次去过哪些信源、写入了多少条。对话里的回看也记在这里。"
         />
         <Card>
           <VStack gap={3}>
             <Heading level={2}>添加定时任务</Heading>
             <Text type="supporting" as="p">
-              周期对应 Worker 里已有的两条 Cron：每天 10:00，或每周一 09:00（北京时间）。执行时只读列表页，筛出约一年内能映射到 T01–T10 的条目。信源开关在{" "}
+              周期对应 Worker 里已有的两条 Cron：每天 10:00，或每周一 09:00（北京时间）。执行时先读列表页，能打开的通知再读正文，筛出约一年内能映射到 T01–T10 的政策。信源开关在{" "}
               <Link href="/settings#sources">配置</Link>。
             </Text>
             <TaskForm />

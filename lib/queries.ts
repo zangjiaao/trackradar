@@ -67,36 +67,40 @@ async function attachTrackCodes(database: D1Database, rows: LeadQueryRow[]): Pro
 
 const LEAD_COLUMNS = `l.id, l.source_id, l.track_code, l.title, l.url, l.summary, l.relevant_excerpt, l.opportunity_note,
   l.studio_angle, l.subsidy_note, l.participation_note, l.who_can_apply, l.contact_note, l.window_note,
-  l.region, l.side, l.site, l.published_at, l.score_capability, l.score_funding, l.score_demand, l.score_policy,
+  l.region, l.side, l.site, l.signal, l.kind, l.published_at, l.score_capability, l.score_funding, l.score_demand, l.score_policy,
   l.score_competition, l.score_demo, l.score_total, l.origin, l.created_at, s.name AS source_name`;
 
-export async function listLeads(limit = 50, trackCode?: string | null): Promise<LeadRow[]> {
+export async function listLeads(limit = 50, trackCode?: string | null, kind?: "policy" | "case" | null): Promise<LeadRow[]> {
   const database = getDb();
   const track = trackCode && isTrackCode(trackCode) ? trackCode : null;
+  const kindClause = kind ? "l.kind = ?" : "1 = 1";
   const statement = track
     ? database
         .prepare(
           `SELECT ${LEAD_COLUMNS}
            FROM leads l
            LEFT JOIN sources s ON s.id = l.source_id
-           WHERE l.id IN (SELECT lead_id FROM lead_tracks WHERE track_code = ?)
-              OR l.track_code = ?
+           WHERE (${kindClause})
+             AND (l.id IN (SELECT lead_id FROM lead_tracks WHERE track_code = ?) OR l.track_code = ?)
            ORDER BY l.created_at DESC LIMIT ?`,
         )
-        .bind(track, track, limit)
+        .bind(...(kind ? [kind] : []), track, track, limit)
     : database
         .prepare(
           `SELECT ${LEAD_COLUMNS}
            FROM leads l
            LEFT JOIN sources s ON s.id = l.source_id
+           WHERE ${kindClause}
            ORDER BY l.created_at DESC LIMIT ?`,
         )
-        .bind(limit);
+        .bind(...(kind ? [kind] : []), limit);
   const { results } = await statement.all<LeadQueryRow>();
   return attachTrackCodes(database, results);
 }
 
-export async function listTrackEvents(): Promise<{ code: string; createdAt: string }[]> {
+export async function listTrackEvents(kind?: "policy" | "case" | null): Promise<{ code: string; createdAt: string }[]> {
+  const kindClause = kind ? "l.kind = ?" : "1 = 1";
+  const binds = kind ? [kind, kind] : [];
   const { results } = await getDb()
     .prepare(
       `SELECT track_code AS code, created_at AS createdAt
@@ -104,13 +108,16 @@ export async function listTrackEvents(): Promise<{ code: string; createdAt: stri
          SELECT lt.track_code AS track_code, l.created_at AS created_at
          FROM lead_tracks lt
          JOIN leads l ON l.id = lt.lead_id
+         WHERE ${kindClause}
          UNION ALL
          SELECT l.track_code, l.created_at
          FROM leads l
-         WHERE l.track_code IS NOT NULL
+         WHERE ${kindClause}
+           AND l.track_code IS NOT NULL
            AND l.id NOT IN (SELECT lead_id FROM lead_tracks)
        )`,
     )
+    .bind(...binds)
     .all<{ code: string; createdAt: string }>();
   return results;
 }
@@ -280,8 +287,8 @@ async function insertLeadsFromList(source: SourceRow, items: { title: string; ur
         `INSERT INTO leads (
            id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, published_at,
            studio_angle, subsidy_note, participation_note, who_can_apply, contact_note, window_note,
-           score_capability, score_funding, score_demand, score_policy, score_competition, score_demo, score_total, origin
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'crawl')`,
+           score_capability, score_funding, score_demand, score_policy, score_competition, score_demo, score_total, origin, kind
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'crawl', 'policy')`,
       )
       .bind(
         id,

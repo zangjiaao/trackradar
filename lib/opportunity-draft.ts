@@ -146,6 +146,7 @@ export type OpportunityFields = {
   summary?: string | null;
   relevant_excerpt?: string | null;
   opportunity_note?: string | null;
+  signal?: string | null;
   scores?: Partial<ScoreParts> | null;
 };
 
@@ -160,6 +161,7 @@ export type FinalOpportunity = {
   summary: string;
   relevant_excerpt: string;
   opportunity_note: string;
+  signal: string | null;
   scores: ScoreParts;
 };
 
@@ -183,6 +185,7 @@ export function finalizeOpportunity(input: OpportunityFields, dictionaries?: Tra
   const summary = (input.summary?.trim() || draft.summary).slice(0, 800);
   const relevantExcerpt = (input.relevant_excerpt === undefined ? draft.relevant_excerpt : (input.relevant_excerpt ?? "")).trim().slice(0, 200);
   const opportunityNote = (input.opportunity_note === undefined ? draft.opportunity_note : (input.opportunity_note ?? "")).trim().slice(0, 400);
+  const signal = input.signal?.trim().slice(0, 80) || null;
   const regionText = input.region === undefined ? (draft.region ?? "") : input.region.trim().slice(0, 40);
   return {
     title,
@@ -193,6 +196,7 @@ export function finalizeOpportunity(input: OpportunityFields, dictionaries?: Tra
     track_codes: tracks,
     relevant_excerpt: relevantExcerpt,
     opportunity_note: opportunityNote,
+    signal,
     side,
     summary,
     scores: input.scores ? applySuggestedScores(input.scores, draft.scores) : draft.scores,

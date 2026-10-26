@@ -68,7 +68,7 @@ export const MATERIAL_SITES = [
 export type MaterialSite = (typeof MATERIAL_SITES)[number]["value"];
 
 export const DEFAULT_MATERIAL_SITES =
-  "OPC 社区、猪八戒、Fiverr、58同城、小红书、闲鱼、淘宝、视频号。这些站点由人工打开查找，再回到机会页录入。不自动爬取。";
+  "OPC 社区、猪八戒、Fiverr、58同城、小红书、闲鱼、淘宝、视频号。这些站点由人工打开查找，再回到案例页录入。不自动爬取。";
 
 export const ORIGIN_LABEL: Record<string, string> = {
   seed: "种子",
@@ -105,6 +105,8 @@ export type LeadRow = {
   region: string | null;
   side: string | null;
   site: string | null;
+  signal: string | null;
+  kind: string;
   source_name: string | null;
   published_at: string | null;
   track_codes: string[];

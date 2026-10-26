@@ -35,4 +35,5 @@ test("默认提示词要求解读政策并过滤过宽口径", () => {
   assert.match(PROMPT_V1, /秀肌肉/);
   assert.match(PROMPT_V1, /UI\/UX/);
   assert.match(PROMPT_V1, /先接小单/);
+  assert.match(PROMPT_V1, /有助于发展/);
 });

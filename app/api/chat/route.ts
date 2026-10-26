@@ -76,14 +76,15 @@ export async function POST(request: Request) {
         },
       }),
       list_leads: tool({
-        description: "列出已入库机会。每条都带原始 url、供需侧和站点，回答时必须保留链接。",
+        description: "列出政策和案例。kind 省略时两侧都返回。每条都带原始 url，回答时必须保留链接。",
         inputSchema: z.object({
           limit: z.number().int().min(1).max(30).optional().describe("返回条数，默认 15"),
+          kind: z.enum(["policy", "case"]).optional().describe("policy 只看政策，case 只看案例，省略则两侧都看"),
         }),
-        execute: async ({ limit }) => {
+        execute: async ({ limit, kind }) => {
           try {
-            const leads = await listLeads(limit ?? 15);
-            await recordWork({ kind: "tool_list_leads", status: "done", message: `Agent 读取机会清单，返回 ${leads.length} 条。` });
+            const leads = await listLeads(limit ?? 15, null, kind);
+            await recordWork({ kind: "tool_list_leads", status: "done", message: `Agent 读取${kind === "case" ? "案例" : kind === "policy" ? "政策" : "政策和案例"}，返回 ${leads.length} 条。` });
             return { leads };
           } catch (error) {
             const message = error instanceof Error ? error.message : "读取线索失败";
@@ -117,7 +118,7 @@ export async function POST(request: Request) {
         },
       }),
       scan_sources: tool({
-        description: "到已启用的政策信源回看大约一年的列表页。先解读，只把和工作室能力明显相关的政策写入机会清单。能打开的通知再读这一篇正文，不翻全站。执行过程记在任务页。",
+        description: "到已启用的政策信源回看大约一年的列表页。先解读，只把和工作室能力明显相关的政策写入政策页。能打开的通知再读这一篇正文，不翻全站。执行过程记在任务页。",
         inputSchema: z.object({
           lookback_days: z.number().int().min(30).max(800).optional().describe("回看天数，默认 365"),
           region: z.string().optional().describe("只看某个地域，如上海、北京"),
@@ -149,19 +150,20 @@ export async function POST(request: Request) {
         },
       }),
       add_opportunity: tool({
-        description: "把用户人工找到的一条外部素材写入机会清单。必须有标题和 http(s) 原链接。未给出的赛道、供需侧、摘要和分数用本地规则补全。不爬取站点。",
+        description: "把用户人工找到的一条市场素材写入案例。必须有标题和 http(s) 原链接。未给出的赛道、供需侧、摘要和分数用本地规则补全。不爬取站点。",
         inputSchema: z.object({
           title: z.string().describe("素材标题"),
           url: z.string().describe("原始 http(s) 链接"),
           site: z.string().optional().describe("站点代码或中文名：opc、zbj、fiverr、58、xhs、xianyu、taobao、channels、other"),
           notes: z.string().optional().describe("用户看到的求购、报价或笔记"),
+          signal: z.string().optional().describe("价格或信号，例如预算 8000、面议"),
           region: z.string().optional(),
           track_code: z.string().optional().describe("主赛道 T01–T10，不确定就省略"),
           track_codes: z.array(z.string()).optional().describe("可多选的 T01–T10。不确定就省略，由本地规则判断全部命中"),
           side: z.enum(["demand", "supply", "content"]).optional(),
           summary: z.string().optional().describe("摘要解读：哪一部分相关"),
           relevant_excerpt: z.string().optional().describe("相关片段，引用原文"),
-          opportunity_note: z.string().optional().describe("我们的机会：demo、接单或申报"),
+          opportunity_note: z.string().optional().describe("和智能体、知识库、FDE 的关系，不要写成申报流程"),
         }),
         execute: async (input) => {
           try {

@@ -9,8 +9,8 @@ export type LeadSort = (typeof LEAD_SORTS)[number];
 export const LEAD_SORT_OPTIONS: { value: LeadSort; label: string; caption: string }[] = [
   { value: "score_desc", label: "价值分高→低", caption: "当前按价值分从高到低排列。" },
   { value: "score_asc", label: "价值分低→高", caption: "当前按价值分从低到高排列。" },
-  { value: "time_desc", label: "时间新→旧", caption: "当前按时间从新到旧排列。有发布日用发布日，否则用发现时间。" },
-  { value: "time_asc", label: "时间旧→新", caption: "当前按时间从旧到新排列。有发布日用发布日，否则用发现时间。" },
+  { value: "time_desc", label: "时间新→旧", caption: "当前按时间从新到旧排列。有发布日用发布日，否则用入库时间。" },
+  { value: "time_asc", label: "时间旧→新", caption: "当前按时间从旧到新排列。有发布日用发布日，否则用入库时间。" },
 ];
 
 const FACTORS = [
@@ -28,12 +28,12 @@ export function parseLeadSort(value: unknown): LeadSort {
   return typeof value === "string" && (LEAD_SORTS as readonly string[]).includes(value) ? (value as LeadSort) : "score_desc";
 }
 
-export function opportunityHref(track: string | null, sort: LeadSort): string {
+export function opportunityHref(track: string | null, sort: LeadSort, base: "/" | "/cases" = "/"): string {
   const params = new URLSearchParams();
   if (track) params.set("track", track);
   if (sort !== "score_desc") params.set("sort", sort);
   const query = params.toString();
-  return query ? `/?${query}` : "/";
+  return query ? `${base}?${query}` : base;
 }
 
 function calendarDay(value: string | null | undefined): string | null {

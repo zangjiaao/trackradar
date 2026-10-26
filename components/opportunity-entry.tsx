@@ -18,8 +18,8 @@ export function OpportunityEntry({ tracks }: { tracks: TrackOption[] }) {
         <Layout
           header={
             <DialogHeader
-              title="新增机会 / 素材"
-              subtitle="猪八戒、Fiverr 这类市场案例写在这里，站点选 Fiverr。到对话里把它和政策福利、门槛放在一起，问下一步该做什么 demo。"
+              title="新增案例"
+              subtitle="猪八戒、OPC、58、小红书、Fiverr 上看到的求购或接单写在这里。对话里可以和政策放在一起，问现在做什么有助于发展。"
               onOpenChange={setOpen}
             />
           }

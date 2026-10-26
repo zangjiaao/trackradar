@@ -38,6 +38,7 @@ export function OpportunityForm({ tracks, onSaved }: { tracks: TrackOption[]; on
   const [site, setSite] = useState<MaterialSite>("zbj");
   const [region, setRegion] = useState("");
   const [notes, setNotes] = useState("");
+  const [signal, setSignal] = useState("");
   const [selectedTracks, setSelectedTracks] = useState<string[]>([]);
   const [side, setSide] = useState<Side>("demand");
   const [summary, setSummary] = useState("");
@@ -81,7 +82,7 @@ export function OpportunityForm({ tracks, onSaved }: { tracks: TrackOption[]; on
         return;
       }
       applySuggestion(body.suggestion);
-      setMessage(body.suggestion.mode === "model" ? "模型已补全，确认后写入机会清单。" : "没有模型密钥，已用本地规则补全。分数是价值分，确认后仍可写入。");
+      setMessage(body.suggestion.mode === "model" ? "模型已补全，确认后写入案例。" : "没有模型密钥，已用本地规则补全。分数是价值分，确认后仍可写入。");
     } finally {
       setPending(false);
     }
@@ -99,6 +100,7 @@ export function OpportunityForm({ tracks, onSaved }: { tracks: TrackOption[]; on
           url,
           site,
           notes,
+          signal,
           region,
           ...(assisted ? { track_codes: selectedTracks, side, summary, relevant_excerpt: excerpt, opportunity_note: opportunity, scores } : {}),
         }),
@@ -111,6 +113,7 @@ export function OpportunityForm({ tracks, onSaved }: { tracks: TrackOption[]; on
       setTitle("");
       setUrl("");
       setNotes("");
+      setSignal("");
       setRegion("");
       setSummary("");
       setExcerpt("");
@@ -121,7 +124,7 @@ export function OpportunityForm({ tracks, onSaved }: { tracks: TrackOption[]; on
       setAssisted(false);
       setSelectedTracks([]);
       setSide("demand");
-      setMessage("已写入机会清单。");
+      setMessage("已写入案例。");
       onSaved?.();
       router.refresh();
     } finally {
@@ -134,6 +137,7 @@ export function OpportunityForm({ tracks, onSaved }: { tracks: TrackOption[]; on
       <TextInput label="标题" value={title} onChange={setTitle} placeholder="例如 企业知识库 RAG 搭建" width="100%" />
       <TextInput label="原链接" value={url} onChange={setUrl} placeholder="https://" width="100%" />
       <Selector label="站点" value={site} options={SITE_OPTIONS} onChange={(value) => setSite(value as MaterialSite)} width="100%" />
+      <TextInput label="价格或信号" value={signal} onChange={setSignal} placeholder="可选，例如 预算 8000、面议、已有人报价" width="100%" isOptional />
       <TextInput label="地域" value={region} onChange={setRegion} placeholder="可选，例如 杭州" width="100%" isOptional />
       <TextArea
         label="你看到的内容"
@@ -141,11 +145,11 @@ export function OpportunityForm({ tracks, onSaved }: { tracks: TrackOption[]; on
         value={notes}
         width="100%"
         onChange={setNotes}
-        placeholder="报价、求购、笔记或政策里和这条有关的话。不用粘贴整页搜索结果。"
+        placeholder="求购、报价或笔记。不用粘贴整页搜索结果。"
       />
       <HStack gap={2} wrap="wrap" vAlign="center">
         <Button label={pending ? "处理中" : "请 Agent 补全"} variant="primary" isDisabled={pending || title.trim().length < 2} onClick={() => void suggest()} />
-        <Button label="写入机会清单" variant="secondary" isDisabled={pending || !canSave} onClick={() => void save()} />
+        <Button label="写入案例" variant="secondary" isDisabled={pending || !canSave} onClick={() => void save()} />
         {message ? <Text type="supporting">{message}</Text> : null}
       </HStack>
       {assisted ? (
@@ -158,7 +162,7 @@ export function OpportunityForm({ tracks, onSaved }: { tracks: TrackOption[]; on
           <Selector label="供需侧" value={side} options={SIDE_OPTIONS} onChange={(value) => setSide(value as Side)} />
           <TextArea label="摘要解读" rows={3} value={summary} width="100%" onChange={setSummary} />
           <TextArea label="相关片段" rows={2} value={excerpt} width="100%" onChange={setExcerpt} placeholder="原文里和工作室相关的那一句" />
-          <TextArea label="机会说明" rows={2} value={opportunity} width="100%" onChange={setOpportunity} placeholder="可落 demo、接单或申报" />
+          <TextArea label="和我们能力的关系" rows={2} value={opportunity} width="100%" onChange={setOpportunity} placeholder="例如能做知识库或界面 demo，不写申报流程" />
           {scores ? (
             <Text type="supporting" as="p">
               能力 {scores.capability} · 资金/窗口 {scores.funding_window} · 需求 {scores.demand_density} · 政策 {scores.policy_heat} · 竞争 {scores.competition} · demo {scores.demo_feasibility} · 合计 {scores.total}

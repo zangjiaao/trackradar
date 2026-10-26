@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { TopNav, TopNavHeading, TopNavItem } from "@astryxdesign/core/TopNav";
 
 const LINKS = [
-  { href: "/", label: "机会" },
+  { href: "/", label: "政策" },
+  { href: "/cases", label: "案例" },
   { href: "/chat", label: "对话" },
   { href: "/tasks", label: "任务" },
 ];

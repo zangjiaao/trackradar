@@ -15,8 +15,8 @@ export const WORK_KIND_LABEL: Record<string, string> = {
   tool_list_leads: "查看机会",
   tool_search_sources: "查询信源",
   tool_suggest_opportunity: "补全素材",
-  manual_entry: "录入机会",
-  tool_add_opportunity: "对话写入机会",
+  manual_entry: "录入案例",
+  tool_add_opportunity: "对话写入案例",
   source_scan: "信源回看",
   task_run: "执行任务",
 };

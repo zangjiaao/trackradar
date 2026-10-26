@@ -20,9 +20,9 @@ import { FORMAT_SAMPLE, MessageMarkdown } from "@/components/message-markdown";
 import { getBrowserChat, getChatDraft, getServerChatDraft, restoreBrowserChat, setChatDraft, subscribeChatDraft } from "@/components/chat-session";
 
 const SUGGESTIONS = [
-  "到已启用信源回看大约一年，把能映射到 T01–T10 的条目写入机会清单，保留每条原始链接。",
-  "结合政策福利、门槛和已录入的猪八戒、Fiverr 案例，建议工作室下一步该做哪个方向的 demo。",
-  "我在猪八戒看到一条知识库需求，请写入机会清单。标题是企业知识库 RAG 搭建，链接 https://example.com/kb-zbj ，站点猪八戒，地域杭州，笔记是有人求购、预算面议。",
+  "到已启用信源回看大约一年，把能映射到 T01–T10 的政策留下来，保留每条原始链接。",
+  "对照已有政策和案例，说说我们现在做什么有助于发展。",
+  "我在猪八戒看到一条知识库需求，请写入案例。标题是企业知识库 RAG 搭建，链接 https://example.com/kb-zbj ，站点猪八戒，地域杭州，笔记是有人求购、预算面议。",
 ];
 
 type Status = { configured: boolean; model: string; baseURL: boolean };
@@ -95,7 +95,7 @@ export function ChatPanel() {
           onStop={() => stop()}
           isStopShown={busy}
           isDisabled={blocked}
-          placeholder="围绕机会清单和当前配置往下问"
+          placeholder="对照政策和案例往下问"
           footerActions={
             <HStack gap={2} wrap="wrap">
               {SUGGESTIONS.map((suggestion) => (
@@ -123,7 +123,7 @@ export function ChatPanel() {
         ) : (
           <Text type="supporting" as="p">
             模型 {config?.model ?? "读取中"}
-            {config?.baseURL ? " · 使用自定义 Base URL" : ""}。回答会带上配置、常用找素材站点和最近机会。也可以让助手把一条外部素材写入清单。
+            {config?.baseURL ? " · 使用自定义 Base URL" : ""}。回答会带上配置、最近政策和最近案例。也可以让助手把一条市场素材写入案例。
           </Text>
         )}
         {messages.length === 0 ? (
