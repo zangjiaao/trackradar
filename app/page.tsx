@@ -6,6 +6,7 @@ import { OpportunityCard } from "@/components/opportunity-card";
 import { OpportunityEntry } from "@/components/opportunity-entry";
 import { OpportunitySort } from "@/components/opportunity-sort";
 import { PageHeader } from "@/components/page-header";
+import { RereadButton } from "@/components/reread-button";
 import { TrackHeat } from "@/components/track-heat";
 import { isTrackCode } from "@/lib/lead-tracks";
 import { LEAD_SORT_OPTIONS, VALUE_SCORE_FORMULA, parseLeadSort, sortLeads } from "@/lib/lead-presentation";
@@ -34,21 +35,25 @@ export default async function OpportunitiesPage({
         <HStack gap={3} wrap="wrap" justify="between" vAlign="end">
           <PageHeader
             title="机会"
-            description="用来找有价值的情报。解读和机会分析直接写在卡片上。时间有原文发布日就标「发布」，没有就用入库时间标「发现」。"
+            description="用来找有价值的情报。卡片先写我们能接什么、政策福利、参与路径和门槛。有原文发布日就标「发布」，只有抓取入库日就标「入库」。价值分只显示数字。"
           />
           <OpportunityEntry tracks={tracks.map((item) => ({ code: item.code, name: item.name }))} />
         </HStack>
         <HStack gap={3} wrap="wrap" vAlign="end" className="opportunity-toolbar">
           <TrackHeat tracks={tracks.map((item) => ({ code: item.code, name: item.name }))} heat={heat} selected={track} sort={sort} />
           <OpportunitySort track={track} sort={sort} />
+          <RereadButton />
         </HStack>
         <VStack gap={1}>
           <Text type="supporting" as="p">
             {sortCaption}
           </Text>
-          <Text type="supporting" as="p" className="score-formula">
-            {VALUE_SCORE_FORMULA}
-          </Text>
+          <details className="score-details">
+            <summary>价值分怎么算</summary>
+            <Text type="supporting" as="p">
+              {VALUE_SCORE_FORMULA}
+            </Text>
+          </details>
         </VStack>
         {ordered.length === 0 ? (
           <Text type="supporting" as="p">
@@ -57,12 +62,7 @@ export default async function OpportunitiesPage({
         ) : (
           <div className="opportunity-cards">
             {ordered.map((lead) => (
-              <OpportunityCard
-                key={lead.id}
-                lead={lead}
-                names={names}
-                dictionaries={tracks.map((item) => ({ code: item.code, keywords: item.keywords }))}
-              />
+              <OpportunityCard key={lead.id} lead={lead} names={names} />
             ))}
           </div>
         )}

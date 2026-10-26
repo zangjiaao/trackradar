@@ -53,20 +53,29 @@
   overflow-wrap: anywhere;
 }
 
-.value-score {
-  font-size: 1.25rem;
-  line-height: 1.3;
+.intel-label {
+  font-size: 0.8125rem;
 }
 
-.opportunity-analysis,
-.opportunity-summary,
-.opportunity-excerpt,
-.score-parts {
+.intel-hero,
+.intel-body {
   line-height: 1.55;
 }
 
-.opportunity-analysis {
-  font-size: 1.0625rem;
+.intel-hero {
+  font-size: 1.125rem;
+}
+
+.score-details {
+  font-size: 0.875rem;
+}
+
+.score-details summary {
+  cursor: pointer;
+}
+
+.reread-action {
+  width: min(100%, 16rem);
 }
 
 .entry-dialog-body {

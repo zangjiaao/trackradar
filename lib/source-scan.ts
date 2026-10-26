@@ -2,7 +2,9 @@ import type { SourceRow } from "@/lib/domain";
 import { fetchPolicyList } from "@/lib/fetch-list";
 import { writeLeadTracks } from "@/lib/lead-tracks";
 import { loadTrackDictionaries } from "@/lib/queries";
+import { fetchPolicyArticle } from "@/lib/fetch-article";
 import { publishedDay } from "@/lib/lead-presentation";
+import { readPolicy, type PolicyReading } from "@/lib/policy-read";
 import { regionsInText, selectOpportunityItems } from "@/lib/source-window";
 import { skeletonScores } from "@/lib/scoring";
 
@@ -68,8 +70,8 @@ async function insertJob(
 async function saveLead(
   database: D1Database,
   source: SourceRow,
-  item: { title: string; url: string; track: string; tracks: string[]; summary: string; excerpt: string; opportunity: string },
-  lookbackDays: number,
+  item: { title: string; url: string; track: string; tracks: string[] },
+  reading: PolicyReading,
 ): Promise<"saved" | "duplicate"> {
   const existing = await database.prepare("SELECT id FROM leads WHERE url = ?").bind(item.url).first<{ id: string }>();
   if (existing) return "duplicate";
@@ -80,8 +82,9 @@ async function saveLead(
     .prepare(
       `INSERT INTO leads (
          id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, published_at,
+         studio_angle, subsidy_note, participation_note, who_can_apply, contact_note, window_note,
          score_capability, score_funding, score_demand, score_policy, score_competition, score_demo, score_total, origin
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'agent')`,
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'agent')`,
     )
     .bind(
       id,
@@ -89,11 +92,17 @@ async function saveLead(
       tracks[0] ?? item.track,
       item.title,
       item.url,
-      item.summary || `回看约 ${lookbackDays} 天，映射 ${tracks.join("、")}。`,
-      item.excerpt,
-      item.opportunity,
+      reading.subsidyNote,
+      reading.excerpt || null,
+      reading.studioAngle,
       source.region,
-      publishedDay(item.title, item.url),
+      reading.publishedAt || publishedDay(item.title, item.url),
+      reading.studioAngle,
+      reading.subsidyNote,
+      reading.participationNote,
+      reading.whoCanApply,
+      reading.contactNote,
+      reading.windowNote,
       scores.capability,
       scores.funding_window,
       scores.demand_density,
@@ -158,8 +167,18 @@ export async function runSourceScan(database: D1Database, request: ScanRequest):
     const selected = selectOpportunityItems(row.items, lookbackDays, now, dictionaries);
     let saved = 0;
     let duplicate = 0;
+    let bodyReads = 0;
     for (const item of selected.keep.slice(0, PER_SOURCE_LIMIT)) {
-      const outcome = await saveLead(database, row.source, item, lookbackDays);
+      let reading = readPolicy(item.title, dictionaries);
+      if (bodyReads < 4 && Date.now() < deadline - 9_000) {
+        bodyReads += 1;
+        const article = await fetchPolicyArticle(item.url);
+        if (article && article.text.length > 180) {
+          reading = readPolicy(`${item.title}\n${article.text}`, dictionaries);
+          if (article.publishedAt) reading = { ...reading, publishedAt: article.publishedAt };
+        }
+      }
+      const outcome = await saveLead(database, row.source, item, reading);
       if (outcome === "saved") saved += 1;
       else duplicate += 1;
     }
@@ -184,7 +203,7 @@ export async function runSourceScan(database: D1Database, request: ScanRequest):
 
   const who = request.taskName ? `${triggerLabel(request.trigger)}「${request.taskName}」` : triggerLabel(request.trigger);
   const summary = sources.length
-    ? `${who}｜回看 ${lookbackDays} 天｜访问 ${details.length} 个信源｜新写入 ${savedTotal} 条。只留下能落到工作室能力的政策，并写了解读、相关片段和机会。过宽的不入库。只读列表页标题，不翻全站。`
+    ? `${who}｜回看 ${lookbackDays} 天｜访问 ${details.length} 个信源｜新写入 ${savedTotal} 条。能打开的通知会读正文，写下机会、福利、路径、门槛和联络人。过宽的不入库。不翻全站。`
     : `${who}｜没有可访问的启用信源${hints.length ? `（地域：${hints.join("、")}）` : ""}。先到配置里打开信源。`;
   const status = sources.length === 0 ? "skipped" : details.some((item) => item.status === "done") ? "done" : details.every((item) => item.status === "skipped") ? "skipped" : "failed";
   await insertJob(database, { kind: "task_run", status, message: summary, taskId: request.taskId });

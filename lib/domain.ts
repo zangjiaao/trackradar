@@ -95,6 +95,12 @@ export type LeadRow = {
   summary: string | null;
   relevant_excerpt: string | null;
   opportunity_note: string | null;
+  studio_angle: string | null;
+  subsidy_note: string | null;
+  participation_note: string | null;
+  who_can_apply: string | null;
+  contact_note: string | null;
+  window_note: string | null;
   region: string | null;
   side: string | null;
   site: string | null;

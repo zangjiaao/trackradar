@@ -66,6 +66,7 @@ async function attachTrackCodes(database: D1Database, rows: LeadQueryRow[]): Pro
 }
 
 const LEAD_COLUMNS = `l.id, l.source_id, l.track_code, l.title, l.url, l.summary, l.relevant_excerpt, l.opportunity_note,
+  l.studio_angle, l.subsidy_note, l.participation_note, l.who_can_apply, l.contact_note, l.window_note,
   l.region, l.side, l.site, l.published_at, l.score_capability, l.score_funding, l.score_demand, l.score_policy,
   l.score_competition, l.score_demo, l.score_total, l.origin, l.created_at, s.name AS source_name`;
 
@@ -278,8 +279,9 @@ async function insertLeadsFromList(source: SourceRow, items: { title: string; ur
       .prepare(
         `INSERT INTO leads (
            id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, published_at,
+           studio_angle, subsidy_note, participation_note, who_can_apply, contact_note, window_note,
            score_capability, score_funding, score_demand, score_policy, score_competition, score_demo, score_total, origin
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'crawl')`,
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'crawl')`,
       )
       .bind(
         id,
@@ -287,11 +289,17 @@ async function insertLeadsFromList(source: SourceRow, items: { title: string; ur
         tracks[0] ?? null,
         item.title,
         item.url,
-        reading.summary,
-        reading.excerpt,
-        reading.opportunity,
+        reading.subsidyNote,
+        reading.excerpt || null,
+        reading.studioAngle,
         source.region,
-        publishedDay(item.title, item.url),
+        reading.publishedAt || publishedDay(item.title, item.url),
+        reading.studioAngle,
+        reading.subsidyNote,
+        reading.participationNote,
+        reading.whoCanApply,
+        reading.contactNote,
+        reading.windowNote,
         scores.capability,
         scores.funding_window,
         scores.demand_density,

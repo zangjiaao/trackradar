@@ -8,8 +8,9 @@ test("服务商资源池会写出相关片段和机会", () => {
   assert.equal(reading.keep, true);
   assert.deepEqual(reading.tracks, ["T10"]);
   assert.match(reading.excerpt, /资源池/);
-  assert.match(reading.summary, /T10/);
+  assert.doesNotMatch(reading.summary, /与\s*T10|与T10/);
   assert.match(reading.opportunity, /入库|资源池/);
+  assert.doesNotMatch(reading.opportunity, /做个 demo|demo 或申报/);
 });
 
 test("只有园区或入库纳统时不入库", () => {

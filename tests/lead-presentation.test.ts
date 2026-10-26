@@ -35,8 +35,8 @@ test("发布日优先用链接里的完整日期，没有则标发现", () => {
     published_at: null,
     created_at: "2026-10-26T16:30:00.000Z",
   });
-  assert.equal(discovered.kind, "发现");
-  assert.equal(discovered.label, "发现 2026-10-27");
+  assert.equal(discovered.kind, "入库");
+  assert.equal(discovered.label, "入库 2026-10-27");
 
   const dashed = leadWhen({
     title: "关于组织开展2026年下半年创新型中小企业申报及复核工作的通知 2026-09-24",
@@ -90,7 +90,7 @@ test("占位摘要会按标题补上解读和机会，人工摘要保留", () =>
     opportunity_note: null,
   });
   assert.match(filled.opportunity ?? "", /资源池|入库/);
-  assert.match(filled.summary ?? "", /T10/);
+  assert.doesNotMatch(filled.summary ?? "", /与\s*T10|与T10/);
   assert.equal((filled.excerpt ?? "").includes("—"), false);
 
   const manual = presentReading({

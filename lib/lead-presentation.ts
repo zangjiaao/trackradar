@@ -66,7 +66,17 @@ function shanghaiDay(value: string): string | null {
   return calendarDay(parts);
 }
 
-export type LeadWhen = { kind: "发布" | "发现"; label: string; sortAt: string };
+export type LeadWhen = { kind: "发布" | "入库"; label: string; sortAt: string };
+
+function publishedStamp(value: string | null | undefined): { day: string; time: string | null } | null {
+  if (!value) return null;
+  const match = value.trim().match(/^(20\d{2})-(\d{2})-(\d{2})(?:[ T](\d{2}:\d{2}))?/);
+  if (!match) return null;
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  return { day: `${match[1]}-${match[2]}-${match[3]}`, time: match[4] ?? null };
+}
 
 export function leadWhen(input: {
   title: string;
@@ -74,10 +84,16 @@ export function leadWhen(input: {
   published_at: string | null;
   created_at: string;
 }): LeadWhen {
-  const published = calendarDay(input.published_at) ?? publishedDay(input.title, input.url);
+  const stored = publishedStamp(input.published_at);
+  if (stored) {
+    const label = stored.time ? `发布 ${stored.day} ${stored.time}` : `发布 ${stored.day}`;
+    const sortAt = stored.time ? `${stored.day}T${stored.time}:00+08:00` : `${stored.day}T12:00:00+08:00`;
+    return { kind: "发布", label, sortAt };
+  }
+  const published = publishedDay(input.title, input.url);
   if (published) return { kind: "发布", label: `发布 ${published}`, sortAt: `${published}T12:00:00+08:00` };
   const day = input.created_at ? shanghaiDay(input.created_at) : null;
-  return { kind: "发现", label: day ? `发现 ${day}` : "发现时间未知", sortAt: input.created_at || "" };
+  return { kind: "入库", label: day ? `入库 ${day}` : "入库时间未知", sortAt: input.created_at || "" };
 }
 
 export function formatValueScore(total: number | null | undefined): string {

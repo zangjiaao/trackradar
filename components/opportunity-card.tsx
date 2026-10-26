@@ -4,17 +4,7 @@ import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import type { LeadRow } from "@/lib/domain";
-import {
-  formatValueScore,
-  leadWhen,
-  namedOrigin,
-  namedSide,
-  namedSite,
-  presentReading,
-  scoreBreakdown,
-  shortExcerpt,
-} from "@/lib/lead-presentation";
-import type { TrackDictionary } from "@/lib/guess";
+import { formatValueScore, leadWhen, namedOrigin, namedSide, namedSite } from "@/lib/lead-presentation";
 
 function hostLabel(url: string): string {
   try {
@@ -30,23 +20,43 @@ function trackLabel(code: string, names: Map<string, string>): string {
   return short ? `${code} ${short}` : code;
 }
 
-export function OpportunityCard({
-  lead,
-  names,
-  dictionaries,
-}: {
-  lead: LeadRow;
-  names: Map<string, string>;
-  dictionaries?: TrackDictionary[];
-}) {
+function usable(value: string | null | undefined): string | null {
+  const text = value?.trim() ?? "";
+  if (!text || /与\s*T\d{2}|映射\s*T|做个?\s*demo|demo 或申报|分数是价值分|信源回看约/.test(text)) return null;
+  return text;
+}
+
+function Fact({ label, body, hero = false }: { label: string; body: string | null; hero?: boolean }) {
+  if (!body) return null;
+  return (
+    <VStack gap={1}>
+      <Text as="p" type="supporting" className="intel-label">
+        {label}
+      </Text>
+      <Text as="p" weight={hero ? "medium" : undefined} className={hero ? "intel-hero" : "intel-body"}>
+        {body}
+      </Text>
+    </VStack>
+  );
+}
+
+export function OpportunityCard({ lead, names }: { lead: LeadRow; names: Map<string, string> }) {
   const when = leadWhen(lead);
-  const reading = presentReading(lead, dictionaries);
-  const breakdown = scoreBreakdown(lead);
-  const excerpt = shortExcerpt(reading.excerpt);
+  const angle = usable(lead.studio_angle) || usable(lead.opportunity_note);
+  const benefit = usable(lead.subsidy_note);
+  const participation = usable(lead.participation_note);
+  const threshold = usable(lead.who_can_apply);
+  const contact = usable(lead.contact_note);
+  const windows = (lead.window_note ?? "")
+    .split("·")
+    .map((item) => item.trim())
+    .filter(Boolean);
   const site = namedSite(lead.site);
   const source = lead.source_name?.trim() || null;
   const chips = [
     ...(lead.track_codes.length ? lead.track_codes : lead.track_code ? [lead.track_code] : []).map((code) => trackLabel(code, names)),
+    formatValueScore(lead.score_total),
+    when.label,
     lead.region?.trim() || null,
     source,
     site && site !== source ? site : null,
@@ -55,51 +65,20 @@ export function OpportunityCard({
   ].filter((item): item is string => Boolean(item));
 
   return (
-    <article className="opportunity-card" data-opportunity-card>
+    <article className="opportunity-card" data-opportunity-card data-lead-url={lead.url}>
       <VStack gap={3}>
-        <HStack gap={2} wrap="wrap" justify="between" vAlign="end">
-          <Text as="p" weight="medium" className="value-score">
-            {formatValueScore(lead.score_total)}
-          </Text>
-          <Text as="p" type="supporting">
-            {when.label}
-          </Text>
-        </HStack>
-        {breakdown ? (
-          <Text as="p" type="supporting" className="score-parts">
-            {breakdown}
-          </Text>
+        <Fact label="我们有什么机会" body={angle} hero />
+        {windows.length > 0 ? (
+          <HStack gap={2} wrap="wrap">
+            {windows.map((item) => (
+              <Badge key={item} label={item} />
+            ))}
+          </HStack>
         ) : null}
-        {reading.opportunity ? (
-          <VStack gap={1}>
-            <Text as="p" type="supporting">
-              机会分析
-            </Text>
-            <Text as="p" weight="medium" className="opportunity-analysis">
-              {reading.opportunity}
-            </Text>
-          </VStack>
-        ) : null}
-        {reading.summary ? (
-          <VStack gap={1}>
-            <Text as="p" type="supporting">
-              解读
-            </Text>
-            <Text as="p" className="opportunity-summary">
-              {reading.summary}
-            </Text>
-          </VStack>
-        ) : null}
-        {excerpt ? (
-          <VStack gap={1}>
-            <Text as="p" type="supporting">
-              相关片段
-            </Text>
-            <Text as="p" type="supporting" className="opportunity-excerpt">
-              {excerpt}
-            </Text>
-          </VStack>
-        ) : null}
+        <Fact label="政策有什么福利" body={benefit} />
+        <Fact label="如何参与" body={participation} />
+        <Fact label="门槛" body={threshold} />
+        <Fact label="联络人" body={contact} />
         <VStack gap={1} className="opportunity-source">
           <Text as="p" type="supporting" maxLines={2} hasTruncateTooltip>
             {lead.title}
