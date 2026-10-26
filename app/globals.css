@@ -11,6 +11,11 @@
 @source "../node_modules/streamdown/dist/*.js";
 
 @layer components {
+  nav.astryx-top-nav .astryx-top-nav-item {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
   .chat-md {
     min-width: 0;
     overflow-wrap: anywhere;
