@@ -45,10 +45,6 @@ body {
   font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
 }
 
-a {
-  color: inherit;
-}
-
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: var(--font-sans);
@@ -135,5 +131,8 @@ a {
   }
   html {
     @apply font-sans;
+  }
+  a {
+    color: inherit;
   }
 }

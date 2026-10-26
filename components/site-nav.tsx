@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/", label: "总览" },
@@ -30,10 +29,12 @@ export function SiteNav() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={cn(
-                  "rounded-md px-2.5 py-1 text-sm text-muted-foreground hover:bg-muted hover:text-foreground",
-                  active && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
-                )}
+                aria-current={active ? "page" : undefined}
+                className={
+                  active
+                    ? "rounded-md bg-primary px-2.5 py-1 text-sm text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+                    : "rounded-md px-2.5 py-1 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                }
               >
                 {link.label}
               </Link>
