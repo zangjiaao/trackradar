@@ -105,7 +105,7 @@ export function ChatPanel() {
           <Banner
             status="error"
             title="还没有模型密钥"
-            description="请到「配置」填写 API Key、Base URL 和模型名。也可以把 OPENAI_API_KEY 写在 .dev.vars。没有密钥时不会发起模型请求。"
+            description="请用右上角「配置」填写 API Key、Base URL 和模型名。也可以把 OPENAI_API_KEY 写在 .dev.vars。没有密钥时不会发起模型请求。"
           />
         ) : (
           <Text type="supporting" as="p">

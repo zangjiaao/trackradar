@@ -1,4 +1,4 @@
-import type { CrawlJobRow, KeywordSetRow, LeadRow, ParsedSample, Platform, PromptRow, SampleRow, Side, SourceRow, TrackRow } from "./domain";
+import type { KeywordSetRow, LeadRow, ParsedSample, Platform, PromptRow, SampleRow, Side, SourceRow, TrackRow } from "./domain";
 import { isPlatform, isSide } from "./domain";
 import { getDb } from "./db";
 import { fetchPolicyList } from "./fetch-list";
@@ -64,14 +64,6 @@ export async function saveActivePrompt(systemPrompt: string): Promise<void> {
     .prepare("UPDATE prompt_profiles SET system_prompt = ?, updated_at = ? WHERE is_active = 1")
     .bind(text, now)
     .run();
-}
-
-export async function listJobs(limit = 8): Promise<CrawlJobRow[]> {
-  const { results } = await getDb()
-    .prepare("SELECT id, source_id, kind, status, message, created_at FROM crawl_jobs ORDER BY created_at DESC LIMIT ?")
-    .bind(limit)
-    .all<CrawlJobRow>();
-  return results;
 }
 
 export async function counts(): Promise<{ tracks: number; leads: number; samples: number; sources: number }> {

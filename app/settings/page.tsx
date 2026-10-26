@@ -1,5 +1,6 @@
 import { Card } from "@astryxdesign/core/Card";
 import { Heading } from "@astryxdesign/core/Heading";
+import { Link } from "@astryxdesign/core/Link";
 import { Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow } from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -10,20 +11,19 @@ import { PageHeader } from "@/components/page-header";
 import { PromptEditor } from "@/components/prompt-editor";
 import { SourceList } from "@/components/source-list";
 import { WEIGHT_LABELS, WEIGHTS } from "@/lib/domain";
-import { listJobs, listSources, listTracks, getActivePrompt } from "@/lib/queries";
+import { listSources, listTracks, getActivePrompt } from "@/lib/queries";
 import { readCollectConfig, readPublicModel } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   try {
-    const [model, collect, sources, tracks, prompt, jobs] = await Promise.all([
+    const [model, collect, sources, tracks, prompt] = await Promise.all([
       readPublicModel(),
       readCollectConfig(),
       listSources(),
       listTracks(),
       getActivePrompt(),
-      listJobs(8),
     ]);
     return (
       <VStack gap={4} maxWidth={960} className="mx-auto w-full">
@@ -93,21 +93,10 @@ export default async function SettingsPage() {
           <VStack gap={3} id="schedule">
             <Heading level={2}>采集定时</Heading>
             <Text type="supporting" as="p">
-              Worker 里仍是两条占位 Cron。这里选择哪一条生效。触发后只往任务记录写一行，不抓站、不自动筛选。
+              Worker 里仍是两条占位 Cron。这里选择哪一条生效。触发后只往工作记录写一行，不抓站、不自动筛选。完整记录在{" "}
+              <Link href="/work">工作</Link>。
             </Text>
             <CollectForm initial={collect} />
-            <Heading level={3}>最近任务</Heading>
-            {jobs.length === 0 ? (
-              <Text type="supporting" as="p">
-                还没有触发记录。
-              </Text>
-            ) : (
-              jobs.map((job) => (
-                <Text key={job.id} type="supporting" as="p">
-                  {job.kind} · {job.status} · {job.message}
-                </Text>
-              ))
-            )}
           </VStack>
         </Card>
       </VStack>

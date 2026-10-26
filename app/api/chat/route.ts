@@ -5,6 +5,7 @@ import { buildRuntimeContext } from "@/lib/agent-context";
 import { PROMPT_V1, TOOL_ADDENDUM } from "@/lib/prompt";
 import { getActivePrompt, listLeads, listTracks, searchSources } from "@/lib/queries";
 import { readModelConfig } from "@/lib/settings";
+import { recordWork } from "@/lib/work-log";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
   if (!modelEnv) {
     return Response.json(
       {
-        error: "未配置模型密钥。请打开「配置」填写 API Key，或在 .dev.vars 写入 OPENAI_API_KEY。",
+        error: "未配置模型密钥。请用右上角「配置」填写 API Key，或在 .dev.vars 写入 OPENAI_API_KEY。",
       },
       { status: 503 },
     );
@@ -60,9 +61,13 @@ export async function POST(request: Request) {
         inputSchema: z.object({}),
         execute: async () => {
           try {
-            return { tracks: await listTracks() };
+            const tracks = await listTracks();
+            await recordWork({ kind: "tool_list_tracks", status: "done", message: `Agent 读取赛道词典，共 ${tracks.length} 条。` });
+            return { tracks };
           } catch (error) {
-            return { error: error instanceof Error ? error.message : "读取赛道失败" };
+            const message = error instanceof Error ? error.message : "读取赛道失败";
+            await recordWork({ kind: "tool_list_tracks", status: "failed", message });
+            return { error: message };
           }
         },
       }),
@@ -73,9 +78,13 @@ export async function POST(request: Request) {
         }),
         execute: async ({ limit }) => {
           try {
-            return { leads: await listLeads(limit ?? 15) };
+            const leads = await listLeads(limit ?? 15);
+            await recordWork({ kind: "tool_list_leads", status: "done", message: `Agent 读取机会清单，返回 ${leads.length} 条。` });
+            return { leads };
           } catch (error) {
-            return { error: error instanceof Error ? error.message : "读取线索失败" };
+            const message = error instanceof Error ? error.message : "读取线索失败";
+            await recordWork({ kind: "tool_list_leads", status: "failed", message });
+            return { error: message };
           }
         },
       }),
@@ -88,9 +97,18 @@ export async function POST(request: Request) {
         }),
         execute: async (input) => {
           try {
-            return await searchSources(input);
+            const result = await searchSources(input);
+            const fetched = result.previews.map((preview) => preview.list_url).filter(Boolean);
+            const names = result.sources.map((source) => `${source.region}·${source.name}`).slice(0, 8);
+            const message = fetched.length
+              ? `Agent 查询信源并试抓：${fetched.join("，")}`
+              : `Agent 查询信源${names.length ? `：${names.join("、")}` : ""}，未抓取页面。`;
+            await recordWork({ kind: "tool_search_sources", status: "done", message });
+            return result;
           } catch (error) {
-            return { error: error instanceof Error ? error.message : "查询信源失败" };
+            const message = error instanceof Error ? error.message : "查询信源失败";
+            await recordWork({ kind: "tool_search_sources", status: "failed", message });
+            return { error: message };
           }
         },
       }),
