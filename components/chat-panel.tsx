@@ -20,7 +20,7 @@ import { FORMAT_SAMPLE, MessageMarkdown } from "@/components/message-markdown";
 const SUGGESTIONS = [
   "看最近的机会清单，按默认权重选出最该先做的三条，并给出 demo 切口。",
   "对照已启用的信源，说明这周政策窗口在哪里，保留每条原始链接。",
-  "采样信号里供需哪边更密？不要假设已经全站爬取。",
+  "我在猪八戒看到一条知识库需求，请写入机会清单。标题是企业知识库 RAG 搭建，链接 https://example.com/kb-zbj ，站点猪八戒，地域杭州，笔记是有人求购、预算面议。",
 ];
 
 type Status = { configured: boolean; model: string; baseURL: boolean };
@@ -110,7 +110,7 @@ export function ChatPanel() {
         ) : (
           <Text type="supporting" as="p">
             模型 {config?.model ?? "读取中"}
-            {config?.baseURL ? " · 使用自定义 Base URL" : ""}。回答会带上配置和最近机会，也可以调用工具再查。
+            {config?.baseURL ? " · 使用自定义 Base URL" : ""}。回答会带上配置、常用找素材站点和最近机会。也可以让助手把一条外部素材写入清单。
           </Text>
         )}
         {messages.length === 0 ? (

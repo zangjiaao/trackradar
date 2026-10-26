@@ -4,25 +4,26 @@ import { Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow } f
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { DbFallback } from "@/components/db-fallback";
+import { OpportunityForm } from "@/components/opportunity-form";
 import { PageHeader } from "@/components/page-header";
-import { SampleImporter } from "@/components/sample-importer";
-import { PLATFORM_LABEL, SIDE_LABEL, type Platform, type Side } from "@/lib/domain";
-import { listLeads, listSamples } from "@/lib/queries";
+import { ORIGIN_LABEL, SIDE_LABEL, type Side } from "@/lib/domain";
+import { siteLabel } from "@/lib/opportunity-draft";
+import { listLeads, listTracks } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function OpportunitiesPage() {
   try {
-    const [leads, samples] = await Promise.all([listLeads(), listSamples()]);
+    const [leads, tracks] = await Promise.all([listLeads(), listTracks()]);
     return (
       <VStack gap={6} maxWidth={1100} className="mx-auto w-full">
         <PageHeader
           title="机会清单"
-          description="按配置里的信源和周期收集。定时触发目前只记任务，真正写入来自种子数据、信源试抓和下面的采样。每条都保留原始链接。"
+          description="机会来自种子数据、信源试抓，以及你在外部站点人工找到后录入的素材。Agent 可以补全赛道、供需侧、摘要和打分建议，再写入这张清单。这些条目用来分析现状。每条都保留原始链接。"
         />
         {leads.length === 0 ? (
           <Text type="supporting" as="p">
-            还没有机会。到配置里启用信源并试抓，或在下面粘贴采样。
+            还没有机会。在下面录入一条素材，或到配置里试抓政策信源。
           </Text>
         ) : (
           <Table density="compact" textOverflow="wrap" verticalAlign="top">
@@ -30,6 +31,8 @@ export default async function OpportunitiesPage() {
               <TableRow>
                 <TableHeaderCell>标题与原链接</TableHeaderCell>
                 <TableHeaderCell>赛道</TableHeaderCell>
+                <TableHeaderCell>侧</TableHeaderCell>
+                <TableHeaderCell>站点</TableHeaderCell>
                 <TableHeaderCell>地域</TableHeaderCell>
                 <TableHeaderCell>骨架分</TableHeaderCell>
                 <TableHeaderCell>来源</TableHeaderCell>
@@ -52,60 +55,24 @@ export default async function OpportunitiesPage() {
                     </VStack>
                   </TableCell>
                   <TableCell>{lead.track_code ?? "—"}</TableCell>
+                  <TableCell>{lead.side && lead.side in SIDE_LABEL ? SIDE_LABEL[lead.side as Side] : "—"}</TableCell>
+                  <TableCell>{siteLabel(lead.site)}</TableCell>
                   <TableCell>{lead.region ?? "—"}</TableCell>
                   <TableCell>{lead.score_total ?? "—"}</TableCell>
-                  <TableCell>{lead.origin}</TableCell>
+                  <TableCell>{ORIGIN_LABEL[lead.origin] ?? lead.origin}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
-        <VStack gap={4} id="samples">
+        <VStack gap={3} id="entry">
           <VStack gap={1}>
-            <Heading level={2}>采样信号</Heading>
+            <Heading level={2}>新增机会 / 素材</Heading>
             <Text type="supporting" as="p">
-              不做全站爬取。把闲鱼、淘宝或视频号的搜索结果粘贴进来，抽出标题和链接后写入采样，对话会读到最近几条。
+              到 OPC 社区、猪八戒、58同城、小红书、闲鱼、淘宝或视频号上人工查找，把标题、链接和你看到的内容填在这里。不自动爬取。补全后再写入上面的清单。常用站点说明在配置里。
             </Text>
           </VStack>
-          <SampleImporter />
-          <Heading level={3}>已入库采样</Heading>
-          {samples.length === 0 ? (
-            <Text type="supporting" as="p">
-              还没有采样。
-            </Text>
-          ) : (
-            <Table density="compact" textOverflow="wrap" verticalAlign="top">
-              <TableHeader>
-                <TableRow>
-                  <TableHeaderCell>时间</TableHeaderCell>
-                  <TableHeaderCell>平台</TableHeaderCell>
-                  <TableHeaderCell>标题与链接</TableHeaderCell>
-                  <TableHeaderCell>侧</TableHeaderCell>
-                  <TableHeaderCell>价格/信号</TableHeaderCell>
-                  <TableHeaderCell>赛道</TableHeaderCell>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {samples.map((sample) => (
-                  <TableRow key={sample.id}>
-                    <TableCell>{sample.sampled_at.slice(0, 16)}</TableCell>
-                    <TableCell>{PLATFORM_LABEL[sample.platform as Platform] ?? sample.platform}</TableCell>
-                    <TableCell>
-                      <VStack gap={1}>
-                        <Text>{sample.title}</Text>
-                        <Link href={sample.url} target="_blank" rel="noreferrer noopener">
-                          {sample.url}
-                        </Link>
-                      </VStack>
-                    </TableCell>
-                    <TableCell>{sample.side ? (SIDE_LABEL[sample.side as Side] ?? sample.side) : "—"}</TableCell>
-                    <TableCell>{sample.price_or_signal ?? "—"}</TableCell>
-                    <TableCell>{sample.track_guess ?? "—"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <OpportunityForm tracks={tracks.map((track) => ({ code: track.code, name: track.name }))} />
         </VStack>
       </VStack>
     );

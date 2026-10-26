@@ -3,6 +3,7 @@ import { convertToModelMessages, stepCountIs, streamText, tool, type UIMessage }
 import { z } from "zod";
 import { buildRuntimeContext } from "@/lib/agent-context";
 import { PROMPT_V1, TOOL_ADDENDUM } from "@/lib/prompt";
+import { saveOpportunity } from "@/lib/opportunities";
 import { getActivePrompt, listLeads, listTracks, searchSources } from "@/lib/queries";
 import { readModelConfig } from "@/lib/settings";
 import { recordWork } from "@/lib/work-log";
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
         },
       }),
       list_leads: tool({
-        description: "列出已入库线索。每条都带原始 url，回答时必须保留链接。",
+        description: "列出已入库机会。每条都带原始 url、供需侧和站点，回答时必须保留链接。",
         inputSchema: z.object({
           limit: z.number().int().min(1).max(30).optional().describe("返回条数，默认 15"),
         }),
@@ -108,6 +109,40 @@ export async function POST(request: Request) {
           } catch (error) {
             const message = error instanceof Error ? error.message : "查询信源失败";
             await recordWork({ kind: "tool_search_sources", status: "failed", message });
+            return { error: message };
+          }
+        },
+      }),
+      add_opportunity: tool({
+        description: "把用户人工找到的一条外部素材写入机会清单。必须有标题和 http(s) 原链接。未给出的赛道、供需侧、摘要和分数用本地规则补全。不爬取站点。",
+        inputSchema: z.object({
+          title: z.string().describe("素材标题"),
+          url: z.string().describe("原始 http(s) 链接"),
+          site: z.string().optional().describe("站点代码或中文名：opc、zbj、58、xhs、xianyu、taobao、channels、other"),
+          notes: z.string().optional().describe("用户看到的求购、报价或笔记"),
+          region: z.string().optional(),
+          track_code: z.string().optional().describe("T01–T10，不确定就省略"),
+          side: z.enum(["demand", "supply", "content"]).optional(),
+          summary: z.string().optional(),
+        }),
+        execute: async (input) => {
+          try {
+            const saved = await saveOpportunity(input, "tool_add_opportunity");
+            return {
+              id: saved.id,
+              title: saved.lead.title,
+              url: saved.lead.url,
+              track_code: saved.lead.track_code,
+              side: saved.lead.side,
+              site: saved.lead.site,
+              region: saved.lead.region,
+              summary: saved.lead.summary,
+              score_total: saved.lead.scores.total,
+              origin: "manual",
+            };
+          } catch (error) {
+            const message = error instanceof Error ? error.message : "写入机会失败";
+            await recordWork({ kind: "tool_add_opportunity", status: "failed", message });
             return { error: message };
           }
         },

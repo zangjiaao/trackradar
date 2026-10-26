@@ -52,6 +52,28 @@ export type SourceRow = {
   notes: string | null;
 };
 
+export const MATERIAL_SITES = [
+  { value: "opc", label: "OPC 社区" },
+  { value: "zbj", label: "猪八戒" },
+  { value: "58", label: "58同城" },
+  { value: "xhs", label: "小红书" },
+  { value: "xianyu", label: "闲鱼" },
+  { value: "taobao", label: "淘宝" },
+  { value: "channels", label: "视频号" },
+  { value: "other", label: "其他" },
+] as const;
+
+export type MaterialSite = (typeof MATERIAL_SITES)[number]["value"];
+
+export const DEFAULT_MATERIAL_SITES =
+  "OPC 社区、猪八戒、58同城、小红书、闲鱼、淘宝、视频号。这些站点由人工打开查找，再回到机会页录入。不自动爬取。";
+
+export const ORIGIN_LABEL: Record<string, string> = {
+  seed: "种子",
+  crawl: "试抓",
+  manual: "录入",
+};
+
 export type LeadRow = {
   id: string;
   source_id: string | null;
@@ -60,6 +82,8 @@ export type LeadRow = {
   url: string;
   summary: string | null;
   region: string | null;
+  side: string | null;
+  site: string | null;
   score_total: number | null;
   origin: string;
   created_at: string;

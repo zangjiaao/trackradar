@@ -20,7 +20,7 @@ export async function listSources(): Promise<SourceRow[]> {
 export async function listLeads(limit = 50): Promise<LeadRow[]> {
   const { results } = await getDb()
     .prepare(
-      `SELECT id, source_id, track_code, title, url, summary, region, score_total, origin, created_at
+      `SELECT id, source_id, track_code, title, url, summary, region, side, site, score_total, origin, created_at
        FROM leads ORDER BY created_at DESC LIMIT ?`,
     )
     .bind(limit)

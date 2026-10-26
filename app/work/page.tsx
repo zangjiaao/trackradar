@@ -19,7 +19,7 @@ export default async function WorkPage() {
         />
         {jobs.length === 0 ? (
           <Text type="supporting" as="p">
-            还没有记录。到<Link href="/settings#sources">配置</Link>里试抓一条信源，或等定时任务触发。
+            还没有记录。到<Link href="/settings#sources">配置</Link>里试抓一条信源，在机会页录入素材，或等定时任务触发。
           </Text>
         ) : (
           <Table density="compact" textOverflow="wrap" verticalAlign="top">

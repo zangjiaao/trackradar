@@ -1,12 +1,12 @@
 import { isCadence } from "@/lib/collect";
-import { readCollectConfig, readPublicModel, saveCollectSettings, saveModelSettings } from "@/lib/settings";
+import { readCollectConfig, readMaterialSites, readPublicModel, saveCollectSettings, saveMaterialSites, saveModelSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const [model, collect] = await Promise.all([readPublicModel(), readCollectConfig()]);
-    return Response.json({ model, collect });
+    const [model, collect, materialSites] = await Promise.all([readPublicModel(), readCollectConfig(), readMaterialSites()]);
+    return Response.json({ model, collect, materialSites });
   } catch (error) {
     const message = error instanceof Error ? error.message : "读取配置失败";
     return Response.json({ error: message }, { status: 500 });
@@ -21,6 +21,7 @@ export async function PUT(request: Request) {
     model?: unknown;
     collectEnabled?: unknown;
     cadence?: unknown;
+    materialSites?: unknown;
   } | null;
   if (!body) return Response.json({ error: "需要 JSON 请求体。" }, { status: 400 });
   try {
@@ -42,8 +43,11 @@ export async function PUT(request: Request) {
       }
       await saveCollectSettings({ enabled, cadence });
     }
-    const [model, collect] = await Promise.all([readPublicModel(), readCollectConfig()]);
-    return Response.json({ model, collect });
+    if (typeof body.materialSites === "string") {
+      await saveMaterialSites(body.materialSites);
+    }
+    const [model, collect, materialSites] = await Promise.all([readPublicModel(), readCollectConfig(), readMaterialSites()]);
+    return Response.json({ model, collect, materialSites });
   } catch (error) {
     const message = error instanceof Error ? error.message : "保存配置失败";
     return Response.json({ error: message }, { status: 400 });

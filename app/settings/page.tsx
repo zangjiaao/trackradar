@@ -6,30 +6,32 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { CollectForm } from "@/components/collect-form";
 import { DbFallback } from "@/components/db-fallback";
+import { MaterialSitesForm } from "@/components/material-sites-form";
 import { ModelForm } from "@/components/model-form";
 import { PageHeader } from "@/components/page-header";
 import { PromptEditor } from "@/components/prompt-editor";
 import { SourceList } from "@/components/source-list";
 import { WEIGHT_LABELS, WEIGHTS } from "@/lib/domain";
 import { listSources, listTracks, getActivePrompt } from "@/lib/queries";
-import { readCollectConfig, readPublicModel } from "@/lib/settings";
+import { readCollectConfig, readMaterialSites, readPublicModel } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   try {
-    const [model, collect, sources, tracks, prompt] = await Promise.all([
+    const [model, collect, sources, tracks, prompt, materialSites] = await Promise.all([
       readPublicModel(),
       readCollectConfig(),
       listSources(),
       listTracks(),
       getActivePrompt(),
+      readMaterialSites(),
     ]);
     return (
       <VStack gap={4} maxWidth={960} className="mx-auto w-full">
         <PageHeader
           title="配置"
-          description="模型、信源和采集周期会写进对话的系统提示。Agent 按这里的要求分析机会清单，而不是另起一套假设。"
+          description="模型、信源、采集周期和常用找素材站点会写进对话的系统提示。Agent 按这里的要求分析机会清单，而不是另起一套假设。"
         />
         <Card>
           <VStack gap={3} id="model">
@@ -80,6 +82,15 @@ export default async function SettingsPage() {
                 ))}
               </TableBody>
             </Table>
+          </VStack>
+        </Card>
+        <Card>
+          <VStack gap={3} id="materials">
+            <Heading level={2}>常用找素材的站点</Heading>
+            <Text type="supporting" as="p">
+              记下你常去人工查找的地方。对话和补全会读到这段说明。应用不会爬这些网站。
+            </Text>
+            <MaterialSitesForm initial={materialSites} />
           </VStack>
         </Card>
         <VStack gap={3} id="sources">

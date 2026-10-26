@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { collectFromMap, type Cadence, type CollectConfig } from "@/lib/collect";
 import { getDb } from "@/lib/db";
+import { DEFAULT_MATERIAL_SITES } from "@/lib/domain";
 
 export type { Cadence, CollectConfig };
 
@@ -111,6 +112,18 @@ export async function saveModelSettings(input: { apiKey?: string; clearKey?: boo
     if (!model || model.length > 80 || /\s/.test(model)) throw new Error("模型名不能为空，且不能含空格。");
     await putSetting("openai_model", model);
   }
+}
+
+export async function readMaterialSites(): Promise<string> {
+  const map = await readSettingsMap();
+  return map.material_sites?.trim() || DEFAULT_MATERIAL_SITES;
+}
+
+export async function saveMaterialSites(text: string): Promise<void> {
+  const value = text.trim();
+  if (value.length < 4) throw new Error("站点说明过短。");
+  if (value.length > 800) throw new Error("站点说明过长。");
+  await putSetting("material_sites", value);
 }
 
 export async function saveCollectSettings(input: { enabled: boolean; cadence: Cadence }): Promise<void> {
