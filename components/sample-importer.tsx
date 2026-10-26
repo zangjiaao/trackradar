@@ -2,13 +2,22 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@astryxdesign/core/Button";
+import { Grid } from "@astryxdesign/core/Grid";
+import { HStack } from "@astryxdesign/core/HStack";
+import { Link } from "@astryxdesign/core/Link";
+import { Selector } from "@astryxdesign/core/Selector";
+import { Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow } from "@astryxdesign/core/Table";
+import { Text } from "@astryxdesign/core/Text";
+import { TextArea } from "@astryxdesign/core/TextArea";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { VStack } from "@astryxdesign/core/VStack";
 import { PLATFORM_LABEL, SIDE_LABEL, type ParsedSample, type Platform, type Side } from "@/lib/domain";
 
 type Preview = ParsedSample & { platform: Platform; keyword: string; side: Side };
+
+const PLATFORM_OPTIONS = Object.entries(PLATFORM_LABEL).map(([value, label]) => ({ value, label }));
+const SIDE_OPTIONS = Object.entries(SIDE_LABEL).map(([value, label]) => ({ value, label }));
 
 export function SampleImporter() {
   const router = useRouter();
@@ -66,84 +75,60 @@ export function SampleImporter() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <label className="flex flex-col gap-1 text-sm">
-          <Label>平台</Label>
-          <select
-            className="h-8 rounded-lg border border-input bg-background px-2 text-sm"
-            value={platform}
-            onChange={(event) => setPlatform(event.target.value as Platform)}
-          >
-            {Object.entries(PLATFORM_LABEL).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <Label>供需侧</Label>
-          <select
-            className="h-8 rounded-lg border border-input bg-background px-2 text-sm"
-            value={side}
-            onChange={(event) => setSide(event.target.value as Side)}
-          >
-            {Object.entries(SIDE_LABEL).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <Label>关键词</Label>
-          <Input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="例如 企业知识库" />
-        </label>
-      </div>
-      <Textarea
+    <VStack gap={4}>
+      <Grid columns={{ minWidth: 220, max: 3 }} gap={3}>
+        <Selector
+          label="平台"
+          value={platform}
+          options={PLATFORM_OPTIONS}
+          onChange={(value) => setPlatform(value as Platform)}
+        />
+        <Selector label="供需侧" value={side} options={SIDE_OPTIONS} onChange={(value) => setSide(value as Side)} />
+        <TextInput label="关键词" value={keyword} onChange={(value) => setKeyword(value)} placeholder="例如 企业知识库" />
+      </Grid>
+      <TextArea
+        label="搜索结果"
         rows={8}
         value={text}
-        onChange={(event) => setText(event.target.value)}
+        width="100%"
+        onChange={(value) => setText(value)}
         placeholder={"粘贴搜索结果。支持：\n标题\nhttps://example.com/item\n¥1999\n\n或 [标题](https://example.com)"}
       />
-      <div className="flex gap-2">
-        <Button type="button" onClick={() => void parse()} disabled={pending || text.trim().length === 0}>
-          解析预览
-        </Button>
-        <Button type="button" variant="outline" onClick={() => void save()} disabled={pending || items.length === 0}>
-          写入采样表
-        </Button>
-      </div>
-      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
-      {items.length > 0 ? (
-        <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-muted/60 text-xs text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2 font-medium">标题</th>
-                <th className="px-3 py-2 font-medium">链接</th>
-                <th className="px-3 py-2 font-medium">价格/信号</th>
-                <th className="px-3 py-2 font-medium">赛道猜测</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.url} className="border-t">
-                  <td className="px-3 py-2">{item.title}</td>
-                  <td className="px-3 py-2">
-                    <a className="break-all text-primary underline-offset-4 hover:underline" href={item.url} target="_blank" rel="noreferrer">
-                      {item.url}
-                    </a>
-                  </td>
-                  <td className="px-3 py-2">{item.price_or_signal ?? "—"}</td>
-                  <td className="px-3 py-2">{item.track_guess ?? item.note ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <HStack gap={2} wrap="wrap">
+        <Button label="解析预览" variant="primary" isDisabled={pending || text.trim().length === 0} onClick={() => void parse()} />
+        <Button label="写入采样表" variant="secondary" isDisabled={pending || items.length === 0} onClick={() => void save()} />
+      </HStack>
+      {message ? (
+        <Text type="supporting" as="p">
+          {message}
+        </Text>
       ) : null}
-    </div>
+      {items.length > 0 ? (
+        <Table density="compact" textOverflow="wrap" verticalAlign="top">
+          <TableHeader>
+            <TableRow>
+              <TableHeaderCell>标题</TableHeaderCell>
+              <TableHeaderCell>链接</TableHeaderCell>
+              <TableHeaderCell>价格/信号</TableHeaderCell>
+              <TableHeaderCell>赛道猜测</TableHeaderCell>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((item) => (
+              <TableRow key={item.url}>
+                <TableCell>{item.title}</TableCell>
+                <TableCell>
+                  <Link href={item.url} target="_blank" rel="noreferrer noopener">
+                    {item.url}
+                  </Link>
+                </TableCell>
+                <TableCell>{item.price_or_signal ?? "—"}</TableCell>
+                <TableCell>{item.track_guess ?? item.note ?? "—"}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      ) : null}
+    </VStack>
   );
 }

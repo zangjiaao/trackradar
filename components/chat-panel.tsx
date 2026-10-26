@@ -1,9 +1,20 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { useEffect, useState } from "react";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Button } from "@astryxdesign/core/Button";
+import {
+  ChatComposer,
+  ChatLayout,
+  ChatMessage,
+  ChatMessageBubble,
+  ChatMessageList,
+  ChatToolCalls,
+  type ChatToolCallStatus,
+} from "@astryxdesign/core/Chat";
+import { HStack } from "@astryxdesign/core/HStack";
+import { Text } from "@astryxdesign/core/Text";
 import { FORMAT_SAMPLE, MessageMarkdown } from "@/components/message-markdown";
 
 const SUGGESTIONS = [
@@ -14,18 +25,17 @@ const SUGGESTIONS = [
 
 type Status = { configured: boolean; model: string; baseURL: boolean };
 
-function toolLabel(part: { type: string; state?: string }): string | null {
-  if (!part.type.startsWith("tool-")) return null;
-  const name = part.type.slice("tool-".length);
-  return `调用 ${name}${part.state ? ` · ${part.state}` : ""}`;
+function toolStatus(state?: string): ChatToolCallStatus {
+  if (state === "output-available" || state === "result") return "complete";
+  if (state === "output-error" || state === "error") return "error";
+  if (state === "input-streaming" || state === "input-available") return "running";
+  return "pending";
 }
 
 export function ChatPanel() {
   const { messages, sendMessage, status, error, stop } = useChat();
   const [draft, setDraft] = useState("");
   const [config, setConfig] = useState<Status | null>(null);
-  const scrollerRef = useRef<HTMLDivElement>(null);
-  const stickToBottomRef = useRef(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,127 +58,104 @@ export function ChatPanel() {
     };
   }, []);
 
-  useLayoutEffect(() => {
-    const el = scrollerRef.current;
-    if (!el || messages.length === 0 || !stickToBottomRef.current) return;
-    el.scrollTop = el.scrollHeight;
-  }, [messages, status]);
-
   const busy = status === "submitted" || status === "streaming";
   const blocked = config !== null && !config.configured;
   const lastMessage = messages.at(-1);
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
-      {blocked ? (
-        <div className="shrink-0 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm leading-6">
-          还没有模型密钥，对话不会发出。请在 <code>.dev.vars</code> 设置 <code>OPENAI_API_KEY</code>
-          ，可选 <code>OPENAI_BASE_URL</code> 与 <code>OPENAI_MODEL</code>（默认 gpt-4o-mini），保存后重启{" "}
-          <code>npm run dev</code>。
-        </div>
-      ) : (
-        <p className="shrink-0 text-xs text-muted-foreground">
-          模型 {config?.model ?? "读取中"}
-          {config?.baseURL ? " · 使用自定义 OPENAI_BASE_URL" : ""}。流式输出，可调用赛道、线索和信源工具。
-        </p>
-      )}
+  function submit(text: string) {
+    const value = text.trim();
+    if (!value || blocked) return;
+    setDraft("");
+    void sendMessage({ text: value });
+  }
 
-      <div
-        ref={scrollerRef}
-        data-chat-messages
-        onScroll={() => {
-          const el = scrollerRef.current;
-          if (!el) return;
-          stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 64;
-        }}
-        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto rounded-xl bg-card p-4 ring-1 ring-foreground/10"
-      >
-        {messages.length === 0 ? (
-          <div className="mr-8">
-            <p className="mb-1 text-xs text-muted-foreground">排版示例</p>
-            <div className="rounded-lg bg-muted/60 px-3 py-2 text-sm leading-6">
-              <MessageMarkdown text={FORMAT_SAMPLE} streaming={false} />
-            </div>
-            <p className="mt-3 text-sm text-muted-foreground">从下面的问题开始，或自己写一句。助手会把结论限制在 T01–T10。</p>
-          </div>
+  return (
+    <ChatLayout
+      data-chat-messages=""
+      density="compact"
+      composer={
+        <ChatComposer
+          data-chat-composer=""
+          value={draft}
+          onChange={setDraft}
+          onSubmit={submit}
+          onStop={() => stop()}
+          isStopShown={busy}
+          isDisabled={blocked}
+          placeholder="问赛道、线索或本周该做什么 demo"
+          footerActions={
+            <HStack gap={2} wrap="wrap">
+              {SUGGESTIONS.map((suggestion) => (
+                <Button
+                  key={suggestion}
+                  label={`${suggestion.slice(0, 18)}…`}
+                  size="sm"
+                  variant="ghost"
+                  isDisabled={busy || blocked}
+                  onClick={() => submit(suggestion)}
+                />
+              ))}
+            </HStack>
+          }
+        />
+      }
+    >
+      <ChatMessageList align={messages.length === 0 ? "top" : "bottom"} isStreaming={status === "streaming"} gap={3}>
+        {blocked ? (
+          <Banner
+            status="error"
+            title="还没有模型密钥"
+            description="请在 .dev.vars 设置 OPENAI_API_KEY，可选 OPENAI_BASE_URL 与 OPENAI_MODEL（默认 gpt-4o-mini），保存后重启 npm run dev。对话不会发出。"
+          />
         ) : (
-          messages.map((message) => (
-            <div key={message.id} className={message.role === "user" ? "ml-8" : "mr-8"}>
-              <p className="mb-1 text-xs text-muted-foreground">{message.role === "user" ? "你" : "助手"}</p>
-              <div className="space-y-2 rounded-lg bg-muted/60 px-3 py-2 text-sm leading-6">
+          <Text type="supporting" as="p">
+            模型 {config?.model ?? "读取中"}
+            {config?.baseURL ? " · 使用自定义 OPENAI_BASE_URL" : ""}。流式输出，可调用赛道、线索和信源工具。
+          </Text>
+        )}
+        {messages.length === 0 ? (
+          <ChatMessage sender="assistant" name="排版示例">
+            <ChatMessageBubble variant="ghost" width="100%">
+              <MessageMarkdown text={FORMAT_SAMPLE} streaming={false} />
+            </ChatMessageBubble>
+            <Text type="supporting" as="p">
+              从下面的问题开始，或自己写一句。助手会把结论限制在 T01–T10。
+            </Text>
+          </ChatMessage>
+        ) : (
+          messages.map((message) => {
+            const sender = message.role === "user" ? "user" : "assistant";
+            const tools = message.parts.flatMap((part) => {
+              if (!part.type.startsWith("tool-")) return [];
+              const toolPart = part as { type: string; state?: string };
+              return [{ name: part.type.slice("tool-".length), status: toolStatus(toolPart.state) }];
+            });
+            return (
+              <ChatMessage key={message.id} sender={sender} name={sender === "user" ? "你" : "助手"}>
                 {message.parts.map((part, index) => {
+                  if (part.type !== "text") return null;
                   const streaming =
                     status === "streaming" &&
                     message.id === lastMessage?.id &&
-                    message.role === "assistant" &&
-                    index === message.parts.length - 1 &&
-                    part.type === "text";
-                  if (part.type === "text") {
-                    return <MessageMarkdown key={`${message.id}-${index}`} text={part.text ?? ""} streaming={streaming} />;
-                  }
-                  const label = toolLabel(part as { type: string; state?: string });
-                  if (!label) return null;
+                    sender === "assistant" &&
+                    index === message.parts.length - 1;
                   return (
-                    <p key={`${message.id}-${index}`} className="text-xs text-muted-foreground">
-                      {label}
-                    </p>
+                    <ChatMessageBubble key={`${message.id}-${index}`} variant={sender === "assistant" ? "ghost" : "filled"} width="100%">
+                      <MessageMarkdown text={part.text ?? ""} streaming={streaming} />
+                    </ChatMessageBubble>
                   );
                 })}
-              </div>
-            </div>
-          ))
+                {tools.length > 0 ? <ChatToolCalls calls={tools} /> : null}
+              </ChatMessage>
+            );
+          })
         )}
-        {error ? <p className="text-sm text-destructive">{error.message}</p> : null}
-      </div>
-
-      <div className="flex shrink-0 flex-wrap gap-2">
-        {SUGGESTIONS.map((suggestion) => (
-          <Button
-            key={suggestion}
-            type="button"
-            variant="outline"
-            disabled={busy || blocked}
-            onClick={() => {
-              stickToBottomRef.current = true;
-              void sendMessage({ text: suggestion });
-            }}
-          >
-            {suggestion.slice(0, 18)}…
-          </Button>
-        ))}
-      </div>
-
-      <form
-        data-chat-composer
-        className="flex shrink-0 flex-col gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const text = draft.trim();
-          if (!text || blocked) return;
-          stickToBottomRef.current = true;
-          setDraft("");
-          void sendMessage({ text });
-        }}
-      >
-        <Textarea
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="问赛道、线索或本周该做什么 demo"
-          rows={3}
-          disabled={blocked}
-          className="field-sizing-fixed max-h-32 min-h-16 resize-none overflow-y-auto"
-        />
-        <div className="flex gap-2">
-          <Button type="submit" disabled={busy || blocked || draft.trim().length === 0}>
-            发送
-          </Button>
-          {busy ? (
-            <Button type="button" variant="outline" onClick={() => stop()}>
-              停止
-            </Button>
-          ) : null}
-        </div>
-      </form>
-    </div>
+        {error ? (
+          <Text type="supporting" as="p">
+            {error.message}
+          </Text>
+        ) : null}
+      </ChatMessageList>
+    </ChatLayout>
   );
 }

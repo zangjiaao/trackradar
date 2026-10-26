@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Button } from "@astryxdesign/core/Button";
+import { HStack } from "@astryxdesign/core/HStack";
+import { Link } from "@astryxdesign/core/Link";
+import { Text } from "@astryxdesign/core/Text";
+import { VStack } from "@astryxdesign/core/VStack";
 
 type Preview = {
   items: { title: string; url: string; track_guess: string | null }[];
@@ -36,27 +40,35 @@ export function SourceActions({ sourceId }: { sourceId: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" variant="outline" disabled={pending !== null} onClick={() => void run(false)}>
-          {pending === "preview" ? "抓取中" : "试抓"}
-        </Button>
-        <Button type="button" size="sm" disabled={pending !== null} onClick={() => void run(true)}>
-          {pending === "save" ? "写入中" : "抓取并写入线索"}
-        </Button>
-      </div>
+    <VStack gap={2}>
+      <HStack gap={2} wrap="wrap">
+        <Button
+          label={pending === "preview" ? "抓取中" : "试抓"}
+          size="sm"
+          variant="secondary"
+          isDisabled={pending !== null}
+          onClick={() => void run(false)}
+        />
+        <Button
+          label={pending === "save" ? "写入中" : "抓取并写入线索"}
+          size="sm"
+          variant="primary"
+          isDisabled={pending !== null}
+          onClick={() => void run(true)}
+        />
+      </HStack>
       {preview ? (
-        <div className="space-y-1 text-xs leading-5 text-muted-foreground">
-          <p>{preview.error ? `失败：${preview.error}` : `抽到 ${preview.items.length} 条${preview.saved ? `，新写入 ${preview.saved} 条` : ""}`}</p>
+        <VStack gap={1}>
+          <Text type="supporting" as="p">
+            {preview.error ? `失败：${preview.error}` : `抽到 ${preview.items.length} 条${preview.saved ? `，新写入 ${preview.saved} 条` : ""}`}
+          </Text>
           {preview.items.slice(0, 3).map((item) => (
-            <p key={item.url}>
-              <a className="text-primary underline-offset-4 hover:underline" href={item.url} target="_blank" rel="noreferrer">
-                {item.title}
-              </a>
-            </p>
+            <Link key={item.url} href={item.url} target="_blank" rel="noreferrer noopener">
+              {item.title}
+            </Link>
           ))}
-        </div>
+        </VStack>
       ) : null}
-    </div>
+    </VStack>
   );
 }

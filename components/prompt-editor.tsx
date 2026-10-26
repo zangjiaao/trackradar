@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@astryxdesign/core/Button";
+import { HStack } from "@astryxdesign/core/HStack";
+import { Text } from "@astryxdesign/core/Text";
+import { TextArea } from "@astryxdesign/core/TextArea";
+import { VStack } from "@astryxdesign/core/VStack";
 
 export function PromptEditor({ initial, version }: { initial: string; version: string }) {
   const router = useRouter();
@@ -13,7 +16,6 @@ export function PromptEditor({ initial, version }: { initial: string; version: s
 
   return (
     <form
-      className="flex flex-col gap-3"
       onSubmit={async (event) => {
         event.preventDefault();
         setPending(true);
@@ -32,13 +34,13 @@ export function PromptEditor({ initial, version }: { initial: string; version: s
         }
       }}
     >
-      <Textarea rows={12} value={text} onChange={(event) => setText(event.target.value)} />
-      <div className="flex items-center gap-3">
-        <Button type="submit" disabled={pending || text.trim() === initial.trim()}>
-          保存提示词
-        </Button>
-        {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
-      </div>
+      <VStack gap={3}>
+        <TextArea label="系统提示词" rows={12} value={text} onChange={(value) => setText(value)} width="100%" />
+        <HStack gap={3} vAlign="center" wrap="wrap">
+          <Button label={pending ? "保存中" : "保存提示词"} type="submit" variant="primary" isDisabled={pending || text.trim() === initial.trim()} />
+          {message ? <Text type="supporting">{message}</Text> : null}
+        </HStack>
+      </VStack>
     </form>
   );
 }

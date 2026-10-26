@@ -1,6 +1,7 @@
+import "./globals.css";
 import type { Metadata } from "next";
 import { AppFrame } from "@/components/app-frame";
-import "./globals.css";
+import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
   title: "赛道雷达 TrackRadar",
@@ -11,7 +12,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="zh-CN">
       <body>
-        <AppFrame>{children}</AppFrame>
+        <Providers>
+          <AppFrame>{children}</AppFrame>
+        </Providers>
       </body>
     </html>
   );

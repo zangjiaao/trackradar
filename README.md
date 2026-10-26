@@ -4,7 +4,7 @@
 
 工作室能力：智能体研发；企业知识库与业务知识治理；FDE 前场部署与上线交接。赛道只映射 T01–T10，不做汽车、机器人、具身智能硬件、芯片或服务器制造。
 
-这是可在本地启动的 MVP 骨架：Next.js App Router，经 [vinext](https://github.com/cloudflare/vinext) 跑在 Cloudflare Workers 上，数据用 D1（本地为 SQLite）。
+这是可在本地启动的 MVP 骨架：Next.js App Router，经 [vinext](https://github.com/cloudflare/vinext) 跑在 Cloudflare Workers 上，数据用 D1（本地为 SQLite）。界面使用 [Astryx Design System](https://astryx.atmeta.com/)（`@astryxdesign/core`，neutral 主题，Tailwind v4 仅作布局桥接）。
 
 ## 环境
 
