@@ -72,6 +72,17 @@ export const ORIGIN_LABEL: Record<string, string> = {
   seed: "种子",
   crawl: "试抓",
   manual: "录入",
+  agent: "采集",
+};
+
+export type AgentTaskRow = {
+  id: string;
+  name: string;
+  cadence: "daily" | "weekly";
+  lookback_days: number;
+  instruction: string;
+  enabled: number;
+  created_at: string;
 };
 
 export type LeadRow = {

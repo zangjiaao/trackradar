@@ -4,7 +4,6 @@ import { Link } from "@astryxdesign/core/Link";
 import { Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow } from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { CollectForm } from "@/components/collect-form";
 import { DbFallback } from "@/components/db-fallback";
 import { MaterialSitesForm } from "@/components/material-sites-form";
 import { ModelForm } from "@/components/model-form";
@@ -13,15 +12,14 @@ import { PromptEditor } from "@/components/prompt-editor";
 import { SourceList } from "@/components/source-list";
 import { WEIGHT_LABELS, WEIGHTS } from "@/lib/domain";
 import { listSources, listTracks, getActivePrompt } from "@/lib/queries";
-import { readCollectConfig, readMaterialSites, readPublicModel } from "@/lib/settings";
+import { readMaterialSites, readPublicModel } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   try {
-    const [model, collect, sources, tracks, prompt, materialSites] = await Promise.all([
+    const [model, sources, tracks, prompt, materialSites] = await Promise.all([
       readPublicModel(),
-      readCollectConfig(),
       listSources(),
       listTracks(),
       getActivePrompt(),
@@ -31,7 +29,7 @@ export default async function SettingsPage() {
       <VStack gap={4} maxWidth={960} className="mx-auto w-full">
         <PageHeader
           title="配置"
-          description="模型、信源、采集周期和常用找素材站点会写进对话的系统提示。Agent 按这里的要求分析机会清单，而不是另起一套假设。"
+          description="先配好模型、提示词和信源。对话和任务都会按这里的要求，到已启用信源回看并写入机会清单。定时任务在任务页，不在这里。"
         />
         <Card>
           <VStack gap={3} id="model">
@@ -41,7 +39,7 @@ export default async function SettingsPage() {
         </Card>
         <Card>
           <VStack gap={3} id="requirements">
-            <Heading level={2}>我的要求</Heading>
+            <Heading level={2}>提示词</Heading>
             <Text type="supporting" as="p">
               权重：
               {WEIGHT_LABELS.map((item) => `${item.label} ${Math.round(WEIGHTS[item.key] * 100)}%`).join(" · ")}
@@ -96,20 +94,11 @@ export default async function SettingsPage() {
         <VStack gap={3} id="sources">
           <Heading level={2}>信源</Heading>
           <Text type="supporting" as="p">
-            关掉的信源不会出现在启用列表里，对话试抓也会跳过。试抓可以只预览，或写入机会清单。
+            关掉的信源不会被对话或定时任务访问。试抓仍可只预览，或写入机会清单。自动回看在{" "}
+            <Link href="/chat">对话</Link>和<Link href="/tasks">任务</Link>。
           </Text>
           <SourceList sources={sources} />
         </VStack>
-        <Card>
-          <VStack gap={3} id="schedule">
-            <Heading level={2}>采集定时</Heading>
-            <Text type="supporting" as="p">
-              Worker 里仍是两条占位 Cron。这里选择哪一条生效。触发后只往工作记录写一行，不抓站、不自动筛选。完整记录在{" "}
-              <Link href="/work">工作</Link>。
-            </Text>
-            <CollectForm initial={collect} />
-          </VStack>
-        </Card>
       </VStack>
     );
   } catch (error) {

@@ -28,3 +28,17 @@ export function decideCron(cron: string, collect: CollectConfig): "run" | "skip"
   if (collect.cadence === "weekly") return cron === WEEKLY_CRON ? "run" : "skip";
   return cron === DAILY_CRON ? "run" : "skip";
 }
+
+export type ScheduledTask = {
+  cadence: Cadence;
+  enabled: boolean;
+};
+
+/** 每天的任务只在每天那条 Cron 到期，每周的任务只在周一那条 Cron 到期。 */
+export function tasksDue<T extends ScheduledTask>(cron: string, tasks: T[]): T[] {
+  return tasks.filter((task) => {
+    if (!task.enabled) return false;
+    if (task.cadence === "weekly") return cron === WEEKLY_CRON;
+    return cron === DAILY_CRON;
+  });
+}

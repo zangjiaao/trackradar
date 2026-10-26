@@ -7,7 +7,7 @@ import { TopNav, TopNavHeading, TopNavItem } from "@astryxdesign/core/TopNav";
 const LINKS = [
   { href: "/", label: "机会" },
   { href: "/chat", label: "对话" },
-  { href: "/work", label: "工作" },
+  { href: "/tasks", label: "任务" },
 ];
 
 export function SiteNav() {

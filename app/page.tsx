@@ -19,11 +19,11 @@ export default async function OpportunitiesPage() {
       <VStack gap={6} maxWidth={1100} className="mx-auto w-full">
         <PageHeader
           title="机会清单"
-          description="机会来自种子数据、信源试抓，以及你在外部站点人工找到后录入的素材。Agent 可以补全赛道、供需侧、摘要和打分建议，再写入这张清单。这些条目用来分析现状。每条都保留原始链接。"
+          description="这里看助手从已配置信源带回的机会。想追问就回到对话。定时自动找新机会在任务页。下面的手动录入是辅助。每条都保留原始链接。"
         />
         {leads.length === 0 ? (
           <Text type="supporting" as="p">
-            还没有机会。在下面录入一条素材，或到配置里试抓政策信源。
+            还没有机会。到对话里回看已启用信源，或在任务里执行一次定时任务。也可以在下面手动录入。
           </Text>
         ) : (
           <Table density="compact" textOverflow="wrap" verticalAlign="top">
@@ -69,7 +69,7 @@ export default async function OpportunitiesPage() {
           <VStack gap={1}>
             <Heading level={2}>新增机会 / 素材</Heading>
             <Text type="supporting" as="p">
-              到 OPC 社区、猪八戒、58同城、小红书、闲鱼、淘宝或视频号上人工查找，把标题、链接和你看到的内容填在这里。不自动爬取。补全后再写入上面的清单。常用站点说明在配置里。
+              辅助入口。主路径是对话或任务里按已配置信源回看。这里留给你在 OPC 社区、猪八戒、58同城、小红书、闲鱼、淘宝或视频号上人工找到的材料。不自动爬这些网站。
             </Text>
           </VStack>
           <OpportunityForm tracks={tracks.map((track) => ({ code: track.code, name: track.name }))} />

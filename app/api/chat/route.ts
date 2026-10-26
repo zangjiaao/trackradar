@@ -3,9 +3,12 @@ import { convertToModelMessages, stepCountIs, streamText, tool, type UIMessage }
 import { z } from "zod";
 import { buildRuntimeContext } from "@/lib/agent-context";
 import { PROMPT_V1, TOOL_ADDENDUM } from "@/lib/prompt";
+import { getDb } from "@/lib/db";
 import { saveOpportunity } from "@/lib/opportunities";
 import { getActivePrompt, listLeads, listTracks, searchSources } from "@/lib/queries";
 import { readModelConfig } from "@/lib/settings";
+import { runSourceScan } from "@/lib/source-scan";
+import { normalizeLookback } from "@/lib/source-window";
 import { recordWork } from "@/lib/work-log";
 
 export const dynamic = "force-dynamic";
@@ -55,7 +58,7 @@ export async function POST(request: Request) {
     model: provider.chat(modelEnv.model),
     system: `${system}\n\n${TOOL_ADDENDUM}`,
     messages: await convertToModelMessages(body.messages),
-    stopWhen: stepCountIs(4),
+    stopWhen: stepCountIs(5),
     tools: {
       list_tracks: tool({
         description: "列出赛道词典 T01–T10，含工作室契合说明。",
@@ -109,6 +112,38 @@ export async function POST(request: Request) {
           } catch (error) {
             const message = error instanceof Error ? error.message : "查询信源失败";
             await recordWork({ kind: "tool_search_sources", status: "failed", message });
+            return { error: message };
+          }
+        },
+      }),
+      scan_sources: tool({
+        description: "到已启用的政策信源回看大约一年的列表页，把能映射到 T01–T10 的条目写入机会清单。只读列表页，不翻全站。执行过程记在任务页。",
+        inputSchema: z.object({
+          lookback_days: z.number().int().min(30).max(800).optional().describe("回看天数，默认 365"),
+          region: z.string().optional().describe("只看某个地域，如上海、北京"),
+        }),
+        execute: async ({ lookback_days, region }) => {
+          try {
+            const result = await runSourceScan(getDb(), {
+              lookbackDays: normalizeLookback(lookback_days),
+              trigger: "chat",
+              region,
+            });
+            return {
+              saved: result.saved,
+              visited: result.visited,
+              summary: result.summary,
+              sources: result.sources.map((source) => ({
+                region: source.region,
+                name: source.name,
+                status: source.status,
+                fetched: source.fetched,
+                saved: source.saved,
+              })),
+            };
+          } catch (error) {
+            const message = error instanceof Error ? error.message : "回看信源失败";
+            await recordWork({ kind: "task_run", status: "failed", message });
             return { error: message };
           }
         },

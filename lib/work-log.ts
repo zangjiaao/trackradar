@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 export type WorkRow = CrawlJobRow & {
   source_name: string | null;
   source_region: string | null;
+  task_name: string | null;
 };
 
 export const WORK_KIND_LABEL: Record<string, string> = {
@@ -16,6 +17,8 @@ export const WORK_KIND_LABEL: Record<string, string> = {
   tool_suggest_opportunity: "补全素材",
   manual_entry: "录入机会",
   tool_add_opportunity: "对话写入机会",
+  source_scan: "信源回看",
+  task_run: "执行任务",
 };
 
 export const WORK_STATUS_LABEL: Record<string, string> = {
@@ -45,9 +48,11 @@ export async function listWork(limit = 80): Promise<WorkRow[]> {
   const { results } = await getDb()
     .prepare(
       `SELECT j.id, j.source_id, j.kind, j.status, j.message, j.created_at,
-              s.name AS source_name, s.region AS source_region
+              s.name AS source_name, s.region AS source_region,
+              t.name AS task_name
        FROM crawl_jobs j
        LEFT JOIN sources s ON s.id = j.source_id
+       LEFT JOIN agent_tasks t ON t.id = j.task_id
        ORDER BY j.created_at DESC
        LIMIT ?`,
     )

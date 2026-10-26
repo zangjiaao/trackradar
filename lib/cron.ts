@@ -1,40 +1,48 @@
-import { cadenceLabel, collectFromMap, decideCron, type Cadence } from "./collect";
+import { tasksDue } from "./collect";
+import { runSourceScan } from "./source-scan";
+import { listTasks } from "./tasks";
 
-async function readCollect(database: D1Database): Promise<{ enabled: boolean; cadence: Cadence }> {
-  try {
-    const { results } = await database
-      .prepare("SELECT key, value FROM app_settings WHERE key IN ('collect_enabled', 'collect_cadence')")
-      .all<{ key: string; value: string }>();
-    const map: Record<string, string> = {};
-    for (const row of results) map[row.key] = row.value;
-    return collectFromMap(map);
-  } catch {
-    return { enabled: true, cadence: "daily" };
-  }
-}
-
-export async function recordCronPlaceholder(database: D1Database, cron: string): Promise<{ id: string; kind: string; status: string }> {
-  const collect = await readCollect(database);
-  const decision = decideCron(cron, collect);
-  const kind = collect.cadence === "weekly" ? "weekly_report" : "policy_scan";
-  const id = crypto.randomUUID();
+async function insertSkipped(database: D1Database, message: string): Promise<void> {
   const now = new Date().toISOString();
-  const period = cadenceLabel(collect.cadence);
-  const message = !collect.enabled
-    ? "采集已在配置里关闭，这次触发只记跳过，没有抓取。"
-    : decision === "skip"
-      ? `当前周期是${period}，这条 Cron（${cron}）不在周期内，只记跳过。`
-      : kind === "weekly_report"
-        ? `周报占位：按配置的${period}触发，尚未生成 Top3。可在配置页对启用信源试抓。`
-        : `政策巡检占位：按配置的${period}触发，尚未自动抓取。可在配置页对启用信源试抓并写入机会清单。`;
-  const status = decision === "run" ? "placeholder" : "skipped";
   await database
     .prepare(
       `INSERT INTO crawl_jobs (id, kind, status, message, started_at, finished_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+       VALUES (?, 'task_run', 'skipped', ?, ?, ?)`,
     )
-    .bind(id, kind, status, message, now, now)
+    .bind(crypto.randomUUID(), message, now, now)
     .run();
-  console.log(JSON.stringify({ event: "cron_placeholder", cron, kind, status, jobId: id }));
-  return { id, kind, status };
+}
+
+/** 到点后执行已启用、且周期匹配的任务。采集、筛选、入库与对话里的回看是同一套。 */
+export async function runScheduledTasks(database: D1Database, cron: string): Promise<{ ran: number }> {
+  let tasks: Awaited<ReturnType<typeof listTasks>> = [];
+  try {
+    tasks = await listTasks(database);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "读取任务失败";
+    await insertSkipped(database, `读取定时任务失败：${message}`);
+    return { ran: 0 };
+  }
+  const due = tasksDue(
+    cron,
+    tasks.map((task) => ({ ...task, enabled: task.enabled === 1 })),
+  );
+  if (due.length === 0) {
+    const message = tasks.length ? `这条 Cron（${cron}）没有到期的任务。` : "还没有定时任务。到任务页添加每天或每周一的回看。";
+    await insertSkipped(database, message);
+    console.log(JSON.stringify({ event: "cron_no_task", cron }));
+    return { ran: 0 };
+  }
+  for (const task of due) {
+    await runSourceScan(database, {
+      lookbackDays: task.lookback_days,
+      taskId: task.id,
+      taskName: task.name,
+      trigger: "schedule",
+      instruction: task.instruction,
+      budgetMs: 45_000,
+    });
+  }
+  console.log(JSON.stringify({ event: "cron_tasks", cron, ran: due.length }));
+  return { ran: due.length };
 }
