@@ -10,6 +10,53 @@
 
 @source "../node_modules/streamdown/dist/*.js";
 
+.page-column {
+  width: 100%;
+  max-width: 1100px;
+  margin-inline: auto;
+  min-width: 0;
+}
+
+.track-filters button {
+  height: auto;
+  max-width: 100%;
+  white-space: normal;
+  text-align: start;
+}
+
+.track-filters button span {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+.lead-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+table.lead-table :is(th, td) {
+  max-width: none;
+}
+
+.lead-toggle {
+  align-self: flex-start;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.entry-dialog-body {
+  max-height: min(70dvh, 720px);
+  overflow: auto;
+}
+
 @layer components {
   nav.astryx-top-nav .astryx-top-nav-item {
     white-space: nowrap;

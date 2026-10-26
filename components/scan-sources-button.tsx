@@ -6,6 +6,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
+import { VStack } from "@astryxdesign/core/VStack";
 
 export function ScanSourcesButton() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export function ScanSourcesButton() {
 
   async function run() {
     setPending(true);
-    setMessage("正在读取已启用信源的列表页。");
+    setMessage("正在从已启用信源拉取近一年内容，解读后写入机会清单。");
     try {
       const response = await fetch("/api/scan", {
         method: "POST",
@@ -23,10 +24,11 @@ export function ScanSourcesButton() {
       });
       const body = (await response.json()) as { summary?: string; error?: string; saved?: number };
       if (!response.ok) {
-        setMessage(body.error ?? "回看失败");
+        setMessage(body.error ?? "拉取失败");
         return;
       }
-      setMessage(body.summary ?? `新写入 ${body.saved ?? 0} 条。`);
+      const saved = body.saved ?? 0;
+      setMessage(saved > 0 ? `已写入 ${saved} 条。过程记在任务页的执行记录里。` : "这次没有新的合格条目。过程记在任务页的执行记录里。");
       router.refresh();
     } finally {
       setPending(false);
@@ -34,11 +36,20 @@ export function ScanSourcesButton() {
   }
 
   return (
-    <HStack gap={2} wrap="wrap" vAlign="center">
-      <Button label={pending ? "回看中" : "回看已启用信源（约一年）"} variant="primary" isDisabled={pending} onClick={() => void run()} />
-      <Link href="/tasks">执行记录</Link>
-      <Link href="/">机会清单</Link>
-      {message ? <Text type="supporting">{message}</Text> : null}
-    </HStack>
+    <VStack gap={1}>
+      <HStack gap={2} wrap="wrap" vAlign="center">
+        <Button label={pending ? "正在拉取" : "从信源拉取近一年机会"} variant="primary" isDisabled={pending} onClick={() => void run()} />
+        <Link href="/tasks">执行记录</Link>
+        <Link href="/">机会清单</Link>
+      </HStack>
+      <Text type="supporting" as="p">
+        按配置里已启用的信源去拉政策/信息，解读后写入机会清单。关系不大或过宽的不会进来。
+      </Text>
+      {message ? (
+        <Text type="supporting" as="p">
+          {message}
+        </Text>
+      ) : null}
+    </VStack>
   );
 }

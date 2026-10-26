@@ -11,7 +11,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
     <AppShell
       height={chat ? "fill" : "auto"}
       variant="section"
-      contentPadding={chat ? 0 : 4}
+      contentPadding={4}
       mobileNav={false}
       topNav={<SiteNav />}
     >

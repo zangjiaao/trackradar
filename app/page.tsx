@@ -1,10 +1,10 @@
-import { Heading } from "@astryxdesign/core/Heading";
-import { Link } from "@astryxdesign/core/Link";
+import { HStack } from "@astryxdesign/core/HStack";
 import { Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow } from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { DbFallback } from "@/components/db-fallback";
-import { OpportunityForm } from "@/components/opportunity-form";
+import { LeadCell } from "@/components/lead-cell";
+import { OpportunityEntry } from "@/components/opportunity-entry";
 import { PageHeader } from "@/components/page-header";
 import { TrackHeat } from "@/components/track-heat";
 import { ORIGIN_LABEL, SIDE_LABEL, type Side } from "@/lib/domain";
@@ -38,21 +38,25 @@ export default async function OpportunitiesPage({
     const names = new Map(tracks.map((item) => [item.code, item.name]));
     const heat = trackHeat(events);
     return (
-      <VStack gap={6} maxWidth={1100} className="mx-auto w-full">
-        <PageHeader
-          title="机会清单"
-          description="这里看助手从已配置信源带回的机会。政策会先解读：写明相关片段和我们的机会，关系不大或过宽的不会进来。想追问就回到对话。每条都保留原始链接，一条可以属于多个赛道。"
-        />
+      <VStack gap={4} className="page-column">
+        <HStack gap={3} wrap="wrap" justify="between" vAlign="end">
+          <PageHeader
+            title="机会清单"
+            description="这里看助手从已配置信源带回的机会。政策会先解读，关系不大或过宽的不会进来。解读默认只露两行，原链接只显示域名。想追问就回到对话。"
+          />
+          <OpportunityEntry tracks={tracks.map((item) => ({ code: item.code, name: item.name }))} />
+        </HStack>
         <TrackHeat tracks={tracks.map((item) => ({ code: item.code, name: item.name }))} heat={heat} selected={track} />
         {leads.length === 0 ? (
           <Text type="supporting" as="p">
-            {track ? "这个赛道还没有机会。" : "还没有机会。到对话里回看已启用信源，或在任务里执行一次定时任务。也可以在下面手动录入。"}
+            {track ? "这个赛道还没有机会。" : "还没有机会。到对话里从信源拉取，或在任务里执行一次定时任务。也可以点「新增」手动录入。"}
           </Text>
         ) : (
-          <Table density="compact" textOverflow="wrap" verticalAlign="top">
+          <div className="lead-scroll">
+          <Table className="lead-table" density="compact" textOverflow="wrap" verticalAlign="top">
             <TableHeader>
               <TableRow>
-                <TableHeaderCell>标题与原链接</TableHeaderCell>
+                <TableHeaderCell>标题</TableHeaderCell>
                 <TableHeaderCell>赛道</TableHeaderCell>
                 <TableHeaderCell>侧</TableHeaderCell>
                 <TableHeaderCell>站点</TableHeaderCell>
@@ -65,35 +69,13 @@ export default async function OpportunitiesPage({
               {leads.map((lead) => (
                 <TableRow key={lead.id}>
                   <TableCell>
-                    <VStack gap={1}>
-                      <Text weight="medium">{lead.title}</Text>
-                      <Link href={lead.url} target="_blank" rel="noreferrer noopener">
-                        {lead.url}
-                      </Link>
-                      {lead.relevant_excerpt || lead.opportunity_note ? (
-                        <VStack gap={1}>
-                          {lead.summary ? (
-                            <Text type="supporting" as="p">
-                              解读：{lead.summary}
-                            </Text>
-                          ) : null}
-                          {lead.relevant_excerpt ? (
-                            <Text type="supporting" as="p">
-                              相关片段：{lead.relevant_excerpt}
-                            </Text>
-                          ) : null}
-                          {lead.opportunity_note ? (
-                            <Text type="supporting" as="p">
-                              机会：{lead.opportunity_note}
-                            </Text>
-                          ) : null}
-                        </VStack>
-                      ) : lead.summary ? (
-                        <Text type="supporting" as="p">
-                          {lead.summary}
-                        </Text>
-                      ) : null}
-                    </VStack>
+                    <LeadCell
+                      title={lead.title}
+                      url={lead.url}
+                      summary={lead.summary}
+                      excerpt={lead.relevant_excerpt}
+                      opportunity={lead.opportunity_note}
+                    />
                   </TableCell>
                   <TableCell>{trackTags(lead.track_codes, names)}</TableCell>
                   <TableCell>{lead.side && lead.side in SIDE_LABEL ? SIDE_LABEL[lead.side as Side] : "—"}</TableCell>
@@ -105,16 +87,8 @@ export default async function OpportunitiesPage({
               ))}
             </TableBody>
           </Table>
+          </div>
         )}
-        <VStack gap={3} id="entry">
-          <VStack gap={1}>
-            <Heading level={2}>新增机会 / 素材</Heading>
-            <Text type="supporting" as="p">
-              辅助入口。主路径是对话或任务里按已配置信源回看。这里留给你在 OPC 社区、猪八戒、58同城、小红书、闲鱼、淘宝或视频号上人工找到的材料。不自动爬这些网站。
-            </Text>
-          </VStack>
-          <OpportunityForm tracks={tracks.map((track) => ({ code: track.code, name: track.name }))} />
-        </VStack>
       </VStack>
     );
   } catch (error) {

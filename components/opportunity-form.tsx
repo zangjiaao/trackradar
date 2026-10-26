@@ -32,7 +32,7 @@ type Suggestion = {
 const SITE_OPTIONS = MATERIAL_SITES.map((site) => ({ value: site.value, label: site.label }));
 const SIDE_OPTIONS = Object.entries(SIDE_LABEL).map(([value, label]) => ({ value, label }));
 
-export function OpportunityForm({ tracks }: { tracks: TrackOption[] }) {
+export function OpportunityForm({ tracks, onSaved }: { tracks: TrackOption[]; onSaved?: () => void }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
@@ -123,6 +123,7 @@ export function OpportunityForm({ tracks }: { tracks: TrackOption[] }) {
       setSelectedTracks([]);
       setSide("demand");
       setMessage("已写入机会清单。");
+      onSaved?.();
       router.refresh();
     } finally {
       setPending(false);

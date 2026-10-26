@@ -26,7 +26,7 @@ export default async function SettingsPage() {
       readMaterialSites(),
     ]);
     return (
-      <VStack gap={4} maxWidth={960} className="mx-auto w-full">
+      <VStack gap={4} className="page-column">
         <PageHeader
           title="配置"
           description="先配好模型、提示词和信源。对话和任务都会按这里的要求，到已启用信源回看并写入机会清单。定时任务在任务页，不在这里。"

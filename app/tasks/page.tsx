@@ -17,7 +17,7 @@ export default async function TasksPage() {
   try {
     const [tasks, jobs] = await Promise.all([listTasks(), listWork()]);
     return (
-      <VStack gap={4} maxWidth={1100} className="mx-auto w-full">
+      <VStack gap={4} className="page-column">
         <PageHeader
           title="任务"
           description="添加每天或每周一的定时任务，让助手按配置里已启用的信源自动找新机会。下面同时留下每次去过哪些信源、写入了多少条。对话里的回看也记在这里。"
