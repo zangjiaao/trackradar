@@ -98,7 +98,15 @@ export type LeadRow = {
   region: string | null;
   side: string | null;
   site: string | null;
+  source_name: string | null;
+  published_at: string | null;
   track_codes: string[];
+  score_capability: number | null;
+  score_funding: number | null;
+  score_demand: number | null;
+  score_policy: number | null;
+  score_competition: number | null;
+  score_demo: number | null;
   score_total: number | null;
   origin: string;
   created_at: string;

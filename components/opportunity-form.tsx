@@ -81,7 +81,7 @@ export function OpportunityForm({ tracks, onSaved }: { tracks: TrackOption[]; on
         return;
       }
       applySuggestion(body.suggestion);
-      setMessage(body.suggestion.mode === "model" ? "模型已补全，确认后写入机会清单。" : "没有模型密钥，已用本地规则补全。分数是骨架分，确认后仍可写入。");
+      setMessage(body.suggestion.mode === "model" ? "模型已补全，确认后写入机会清单。" : "没有模型密钥，已用本地规则补全。分数是价值分，确认后仍可写入。");
     } finally {
       setPending(false);
     }
@@ -162,7 +162,7 @@ export function OpportunityForm({ tracks, onSaved }: { tracks: TrackOption[]; on
           {scores ? (
             <Text type="supporting" as="p">
               能力 {scores.capability} · 资金/窗口 {scores.funding_window} · 需求 {scores.demand_density} · 政策 {scores.policy_heat} · 竞争 {scores.competition} · demo {scores.demo_feasibility} · 合计 {scores.total}
-              {mode === "heuristic" ? "。骨架分，用来排序。" : "。已按默认权重重算。"}
+              {mode === "heuristic" ? "。价值分，用来排序，不是调研结论。" : "。已按默认权重重算。"}
             </Text>
           ) : null}
           {rationale ? (

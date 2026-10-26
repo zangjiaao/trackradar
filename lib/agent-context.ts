@@ -1,6 +1,5 @@
 import { cadenceLabel } from "@/lib/collect";
-import { SIDE_LABEL, type Side } from "@/lib/domain";
-import { siteLabel } from "@/lib/opportunity-draft";
+import { formatValueScore, namedSide, namedSite } from "@/lib/lead-presentation";
 import { listLeads, listSources } from "@/lib/queries";
 import { readMaterialSites, readPublicModel } from "@/lib/settings";
 import { listTasks } from "@/lib/tasks";
@@ -31,10 +30,9 @@ export async function buildRuntimeContext(): Promise<string> {
     disabled.length ? `停用信源：${disabled.map((source) => `${source.region}·${source.name}`).join("、")}。` : "停用信源：无。",
     leads.length ? "最近机会：" : "最近机会：清单还是空的。",
     ...leads.map((lead) => {
-      const side = lead.side && lead.side in SIDE_LABEL ? SIDE_LABEL[lead.side as Side] : "侧未知";
       const tracks = lead.track_codes.length ? lead.track_codes.join("、") : (lead.track_code ?? "未映射");
-      const reading = lead.opportunity_note ? `｜机会 ${lead.opportunity_note}` : "";
-      return `- ${lead.title}｜赛道 ${tracks}｜${side}｜站点 ${siteLabel(lead.site)}｜${lead.region ?? "地域未知"}｜骨架分 ${lead.score_total ?? "—"}${reading}｜${lead.url}`;
+      const place = namedSite(lead.site) ?? lead.source_name?.trim() ?? null;
+      return `- ${[lead.title, `赛道 ${tracks}`, namedSide(lead.side), place, lead.region?.trim() || null, formatValueScore(lead.score_total), lead.opportunity_note?.trim() ? `机会 ${lead.opportunity_note.trim()}` : null, lead.url].filter(Boolean).join("｜")}`;
     }),
   ];
   return lines.join("\n");

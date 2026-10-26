@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db";
 import { writeLeadTracks } from "@/lib/lead-tracks";
+import { publishedDay } from "@/lib/lead-presentation";
 import { finalizeOpportunity, type OpportunityFields } from "@/lib/opportunity-draft";
 import { loadTrackDictionaries } from "@/lib/queries";
 import { recordWork } from "@/lib/work-log";
@@ -13,9 +14,9 @@ export async function saveOpportunity(input: OpportunityFields, kind: "manual_en
   await database
     .prepare(
       `INSERT INTO leads (
-         id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, side, site,
+         id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, side, site, published_at,
          score_capability, score_funding, score_demand, score_policy, score_competition, score_demo, score_total, origin
-       ) VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual')`,
+       ) VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual')`,
     )
     .bind(
       id,
@@ -28,6 +29,7 @@ export async function saveOpportunity(input: OpportunityFields, kind: "manual_en
       lead.region,
       lead.side,
       lead.site,
+      publishedDay(lead.title, lead.url),
       lead.scores.capability,
       lead.scores.funding_window,
       lead.scores.demand_density,

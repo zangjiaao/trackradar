@@ -2,6 +2,7 @@ import type { SourceRow } from "@/lib/domain";
 import { fetchPolicyList } from "@/lib/fetch-list";
 import { writeLeadTracks } from "@/lib/lead-tracks";
 import { loadTrackDictionaries } from "@/lib/queries";
+import { publishedDay } from "@/lib/lead-presentation";
 import { regionsInText, selectOpportunityItems } from "@/lib/source-window";
 import { skeletonScores } from "@/lib/scoring";
 
@@ -78,9 +79,9 @@ async function saveLead(
   await database
     .prepare(
       `INSERT INTO leads (
-         id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region,
+         id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, published_at,
          score_capability, score_funding, score_demand, score_policy, score_competition, score_demo, score_total, origin
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'agent')`,
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'agent')`,
     )
     .bind(
       id,
@@ -92,6 +93,7 @@ async function saveLead(
       item.excerpt,
       item.opportunity,
       source.region,
+      publishedDay(item.title, item.url),
       scores.capability,
       scores.funding_window,
       scores.demand_density,

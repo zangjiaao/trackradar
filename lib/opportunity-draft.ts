@@ -65,10 +65,10 @@ export function heuristicDraft(input: {
   const rationale = excluded
     ? "本地规则判断这条落在排除方向，不映射赛道。分数只作排序起点。"
     : reading.keep
-      ? `${reading.summary}${reading.opportunity}分数是骨架分，不是调研结论。`
+      ? `${reading.summary}${reading.opportunity}分数是价值分，不是调研结论。`
       : reading.reason === "broad"
         ? "本地规则觉得这条口径偏宽，或和工作室能力关系不大。自动回看不会入库。若仍要留下，请自己写明机会。"
-        : `本地规则建议赛道 ${tracks.length ? tracks.join("、") : "未映射"}、${SIDE_LABEL[side]}。分数是骨架分，不是调研结论。`;
+        : `本地规则建议赛道 ${tracks.length ? tracks.join("、") : "未映射"}、${SIDE_LABEL[side]}。分数是价值分，不是调研结论。`;
   return {
     track_code: track,
     track_codes: tracks,

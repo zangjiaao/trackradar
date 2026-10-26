@@ -5,6 +5,7 @@ import { fetchPolicyList } from "./fetch-list";
 import { guessTrack, keywordList, type TrackDictionary } from "./guess";
 import { readPolicy } from "./policy-read";
 import { isTrackCode, sortTrackCodes, writeLeadTracks } from "./lead-tracks";
+import { publishedDay } from "./lead-presentation";
 import { skeletonScores } from "./scoring";
 
 export async function listTracks(): Promise<TrackRow[]> {
@@ -64,23 +65,30 @@ async function attachTrackCodes(database: D1Database, rows: LeadQueryRow[]): Pro
   }));
 }
 
+const LEAD_COLUMNS = `l.id, l.source_id, l.track_code, l.title, l.url, l.summary, l.relevant_excerpt, l.opportunity_note,
+  l.region, l.side, l.site, l.published_at, l.score_capability, l.score_funding, l.score_demand, l.score_policy,
+  l.score_competition, l.score_demo, l.score_total, l.origin, l.created_at, s.name AS source_name`;
+
 export async function listLeads(limit = 50, trackCode?: string | null): Promise<LeadRow[]> {
   const database = getDb();
   const track = trackCode && isTrackCode(trackCode) ? trackCode : null;
   const statement = track
     ? database
         .prepare(
-          `SELECT id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, side, site, score_total, origin, created_at
-           FROM leads
-           WHERE id IN (SELECT lead_id FROM lead_tracks WHERE track_code = ?)
-              OR track_code = ?
-           ORDER BY created_at DESC LIMIT ?`,
+          `SELECT ${LEAD_COLUMNS}
+           FROM leads l
+           LEFT JOIN sources s ON s.id = l.source_id
+           WHERE l.id IN (SELECT lead_id FROM lead_tracks WHERE track_code = ?)
+              OR l.track_code = ?
+           ORDER BY l.created_at DESC LIMIT ?`,
         )
         .bind(track, track, limit)
     : database
         .prepare(
-          `SELECT id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, side, site, score_total, origin, created_at
-           FROM leads ORDER BY created_at DESC LIMIT ?`,
+          `SELECT ${LEAD_COLUMNS}
+           FROM leads l
+           LEFT JOIN sources s ON s.id = l.source_id
+           ORDER BY l.created_at DESC LIMIT ?`,
         )
         .bind(limit);
   const { results } = await statement.all<LeadQueryRow>();
@@ -269,9 +277,9 @@ async function insertLeadsFromList(source: SourceRow, items: { title: string; ur
     await database
       .prepare(
         `INSERT INTO leads (
-           id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, score_capability, score_funding,
-           score_demand, score_policy, score_competition, score_demo, score_total, origin
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'crawl')`,
+           id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, published_at,
+           score_capability, score_funding, score_demand, score_policy, score_competition, score_demo, score_total, origin
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'crawl')`,
       )
       .bind(
         id,
@@ -283,6 +291,7 @@ async function insertLeadsFromList(source: SourceRow, items: { title: string; ur
         reading.excerpt,
         reading.opportunity,
         source.region,
+        publishedDay(item.title, item.url),
         scores.capability,
         scores.funding_window,
         scores.demand_density,

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Selector } from "@astryxdesign/core/Selector";
+import { opportunityHref, type LeadSort } from "@/lib/lead-presentation";
 import type { HeatStat } from "@/lib/track-heat";
 
 function heatText(stat: HeatStat | undefined): string {
@@ -15,10 +16,12 @@ export function TrackHeat({
   tracks,
   heat,
   selected,
+  sort,
 }: {
   tracks: { code: string; name: string }[];
   heat: Record<string, HeatStat>;
   selected: string | null;
+  sort: LeadSort;
 }) {
   const router = useRouter();
   const options = [
@@ -33,10 +36,9 @@ export function TrackHeat({
     <div className="track-select">
       <Selector
         label="赛道"
-        isLabelHidden
         value={selected ?? "all"}
         options={options}
-        onChange={(value) => router.push(!value || value === "all" ? "/" : `/?track=${value}`)}
+        onChange={(value) => router.push(opportunityHref(!value || value === "all" ? null : value, sort))}
         width="100%"
       />
     </div>
