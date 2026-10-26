@@ -1,14 +1,15 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { convertToModelMessages, stepCountIs, streamText, tool, type UIMessage } from "ai";
 import { z } from "zod";
-import { readModelEnv } from "@/lib/db";
+import { buildRuntimeContext } from "@/lib/agent-context";
 import { PROMPT_V1, TOOL_ADDENDUM } from "@/lib/prompt";
 import { getActivePrompt, listLeads, listTracks, searchSources } from "@/lib/queries";
+import { readModelConfig } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const modelEnv = readModelEnv();
+  const modelEnv = await readModelConfig();
   return Response.json({
     configured: Boolean(modelEnv),
     model: modelEnv?.model ?? "gpt-4o-mini",
@@ -17,11 +18,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const modelEnv = readModelEnv();
+  const modelEnv = await readModelConfig();
   if (!modelEnv) {
     return Response.json(
       {
-        error: "未配置模型密钥。请在项目根目录的 .dev.vars 写入 OPENAI_API_KEY 后重启开发服务器。可选：OPENAI_BASE_URL、OPENAI_MODEL。",
+        error: "未配置模型密钥。请打开「配置」填写 API Key，或在 .dev.vars 写入 OPENAI_API_KEY。",
       },
       { status: 503 },
     );
@@ -36,6 +37,8 @@ export async function POST(request: Request) {
   try {
     const profile = await getActivePrompt();
     if (profile?.system_prompt) system = profile.system_prompt;
+    const context = await buildRuntimeContext();
+    system = `${system}\n\n${context}`;
   } catch (error) {
     const message = error instanceof Error ? error.message : "读取提示词失败";
     system = `${PROMPT_V1}\n\n（本地数据库暂不可用：${message}。先按 v1 提示词回答，并说明数据未连上。）`;

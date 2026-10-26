@@ -1,5 +1,6 @@
 # 复制为 .dev.vars（已在 .gitignore 中）。本地 vinext / wrangler 会读取。
-# 没有 OPENAI_API_KEY 时，对话页会提示配置方式，不会请求模型。
+# 没有密钥时，对话页会提示去「配置」，不会请求模型。
+# 配置页保存的 API Key / Base URL / Model 优先于下面这些环境变量。
 OPENAI_API_KEY=
 # 可选。兼容 OpenAI Chat Completions 的网关，例如 https://api.openai.com/v1
 OPENAI_BASE_URL=

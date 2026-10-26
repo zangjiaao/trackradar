@@ -46,27 +46,29 @@ npm run deploy
 
 | 名称 | 必填 | 说明 |
 | --- | --- | --- |
-| `OPENAI_API_KEY` | 对话需要 | 模型密钥。未设置时对话页给出中文提示，不发起请求。 |
-| `OPENAI_BASE_URL` | 否 | 兼容 OpenAI Chat Completions 的网关地址。 |
-| `OPENAI_MODEL` | 否 | 默认 `gpt-4o-mini`。 |
+| `OPENAI_API_KEY` | 对话需要 | 模型密钥。未设置时对话页给出中文提示，不发起请求。配置页保存的密钥优先于这里。 |
+| `OPENAI_BASE_URL` | 否 | 兼容 OpenAI Chat Completions 的网关地址。配置页可以覆盖。 |
+| `OPENAI_MODEL` | 否 | 默认 `gpt-4o-mini`。配置页可以覆盖。 |
 
 D1 绑定名是 `DB`，不是环境变量。
 
 ## 路由
 
+主导航只有三块：机会、对话、配置。
+
 | 路径 | 作用 |
 | --- | --- |
-| `/` | 总览、权重、数量、最近定时记录 |
-| `/chat` | AI SDK 流式对话，工具 `list_tracks`、`list_leads`、`search_sources` |
-| `/tracks` | 赛道 T01–T10 |
-| `/leads` | 线索，原链接直接展示 |
-| `/samples` | 粘贴搜索结果，解析标题和链接，预览后写入采样 |
-| `/sources` | 政策信源种子；可试抓列表或写入线索 |
-| `/prompts` | 查看并保存当前激活提示词 |
+| `/` | 机会清单。种子、试抓和采样都汇总在这里 |
+| `/chat` | 围绕机会和配置的流式对话 |
+| `/settings` | 模型、我的要求、赛道词典、信源开关、采集周期 |
+| `/leads`、`/samples` | 转到机会清单 |
+| `/tracks`、`/sources`、`/prompts` | 转到配置里对应的区块 |
 | `POST /api/samples` | `action: "parse"` 预览，或提交 `items` 入库 |
 | `POST /api/sources/fetch` | 通用列表抓取 |
+| `PATCH /api/sources` | 启用或停用一条信源 |
+| `GET/PUT /api/settings` | 读取或保存模型与采集周期。响应不含完整密钥 |
 | `PUT /api/prompts` | 更新激活提示词 |
-| `GET/POST /api/chat` | 是否已配置密钥 / 流式对话 |
+| `GET/POST /api/chat` | 是否已配置密钥 / 流式对话。系统提示附带配置和最近机会 |
 
 ## D1 表
 
@@ -79,6 +81,7 @@ D1 绑定名是 `DB`，不是环境变量。
 - `manual_samples`：粘贴导入的采样
 - `prompt_profiles`：提示词 v1
 - `crawl_jobs`：手动试抓与 Cron 占位记录
+- `app_settings`：配置页保存的模型、采集开关和周期。密钥只存在本地库，接口不回显全文
 
 通用列表适配器读取页面里的 `<a>`，优先用 `title`。上海产业发展、北京通知公告、深圳工信局通知公告、西安工信局通知公告在开发时可以抽出标题和链接。门户首页可能只有导航。
 
@@ -95,7 +98,7 @@ D1 绑定名是 `DB`，不是环境变量。
 - `0 2 * * *`：每天 10:00（北京时间）政策巡检占位
 - `0 1 * * 1`：每周一 09:00（北京时间）周报占位
 
-`worker/index.ts` 的 `scheduled` 只往 `crawl_jobs` 写一条 `placeholder` 记录，不抓站、不发私信。本地可以用 Wrangler 触发：
+配置页选择每天或每周一，并可以关掉采集。`worker/index.ts` 的 `scheduled` 仍不抓站：符合周期时写 `placeholder`，关闭或不在周期内写 `skipped`。本地可以用 Wrangler 触发：
 
 ```bash
 curl "http://localhost:8787/cdn-cgi/handler/scheduled?cron=0+2+*+*+*"

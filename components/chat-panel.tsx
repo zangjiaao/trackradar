@@ -18,9 +18,9 @@ import { Text } from "@astryxdesign/core/Text";
 import { FORMAT_SAMPLE, MessageMarkdown } from "@/components/message-markdown";
 
 const SUGGESTIONS = [
-  "按默认权重说明 T01–T10 里工作室最该先做哪三条，并给出 demo 切口。",
-  "列出已入库线索，保留每条原始链接，并映射到赛道。",
-  "查看上海和北京的政策信源，并试抓列表，不要假设已经全站爬取。",
+  "看最近的机会清单，按默认权重选出最该先做的三条，并给出 demo 切口。",
+  "对照已启用的信源，说明这周政策窗口在哪里，保留每条原始链接。",
+  "采样信号里供需哪边更密？不要假设已经全站爬取。",
 ];
 
 type Status = { configured: boolean; model: string; baseURL: boolean };
@@ -82,7 +82,7 @@ export function ChatPanel() {
           onStop={() => stop()}
           isStopShown={busy}
           isDisabled={blocked}
-          placeholder="问赛道、线索或本周该做什么 demo"
+          placeholder="围绕机会清单和当前配置往下问"
           footerActions={
             <HStack gap={2} wrap="wrap">
               {SUGGESTIONS.map((suggestion) => (
@@ -105,12 +105,12 @@ export function ChatPanel() {
           <Banner
             status="error"
             title="还没有模型密钥"
-            description="请在 .dev.vars 设置 OPENAI_API_KEY，可选 OPENAI_BASE_URL 与 OPENAI_MODEL（默认 gpt-4o-mini），保存后重启 npm run dev。对话不会发出。"
+            description="请到「配置」填写 API Key、Base URL 和模型名。也可以把 OPENAI_API_KEY 写在 .dev.vars。没有密钥时不会发起模型请求。"
           />
         ) : (
           <Text type="supporting" as="p">
             模型 {config?.model ?? "读取中"}
-            {config?.baseURL ? " · 使用自定义 OPENAI_BASE_URL" : ""}。流式输出，可调用赛道、线索和信源工具。
+            {config?.baseURL ? " · 使用自定义 Base URL" : ""}。回答会带上配置和最近机会，也可以调用工具再查。
           </Text>
         )}
         {messages.length === 0 ? (

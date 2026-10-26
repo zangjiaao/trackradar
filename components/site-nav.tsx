@@ -5,13 +5,9 @@ import { usePathname } from "next/navigation";
 import { TopNav, TopNavHeading, TopNavItem } from "@astryxdesign/core/TopNav";
 
 const LINKS = [
-  { href: "/", label: "总览" },
+  { href: "/", label: "机会" },
   { href: "/chat", label: "对话" },
-  { href: "/tracks", label: "赛道" },
-  { href: "/leads", label: "线索" },
-  { href: "/samples", label: "采样" },
-  { href: "/sources", label: "信源" },
-  { href: "/prompts", label: "提示词" },
+  { href: "/settings", label: "配置" },
 ];
 
 export function SiteNav() {
