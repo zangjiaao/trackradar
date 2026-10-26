@@ -14,7 +14,7 @@ export function OpportunityEntry({ tracks }: { tracks: TrackOption[] }) {
   return (
     <div id="entry">
       <Button label="新增" variant="primary" onClick={() => setOpen(true)} />
-      <Dialog isOpen={open} onOpenChange={setOpen} width={720} purpose="form" maxHeight="85dvh">
+      <Dialog isOpen={open} onOpenChange={setOpen} width="min(32rem, calc(100vw - 2rem))" purpose="form" maxHeight="85dvh">
         <Layout
           header={
             <DialogHeader
@@ -24,7 +24,7 @@ export function OpportunityEntry({ tracks }: { tracks: TrackOption[] }) {
             />
           }
           content={
-            <LayoutContent className="entry-dialog-body" padding={4}>
+            <LayoutContent className="entry-dialog-body" padding={4} isScrollable={false}>
               <OpportunityForm tracks={tracks} onSaved={() => setOpen(false)} />
             </LayoutContent>
           }

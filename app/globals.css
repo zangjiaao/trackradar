@@ -17,26 +17,38 @@
   min-width: 0;
 }
 
-.track-filters button {
-  height: auto;
-  max-width: 100%;
-  white-space: normal;
-  text-align: start;
+.track-select {
+  width: min(100%, 36rem);
+  min-width: 0;
 }
 
-.track-filters button span {
-  white-space: normal;
+.opportunity-list .astryx-table-scroll-wrapper {
   overflow: visible;
-  text-overflow: unset;
 }
 
-.lead-scroll {
-  max-width: 100%;
-  overflow-x: auto;
+table.lead-table {
+  width: 100%;
+  table-layout: fixed;
 }
 
 table.lead-table :is(th, td) {
   max-width: none;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+table.lead-table :is(th, td):first-child {
+  width: 42%;
+}
+
+@media (width < 720px) {
+  table.lead-table :is(th, td):nth-child(n + 5) {
+    display: none;
+  }
+
+  table.lead-table :is(th, td):first-child {
+    width: 52%;
+  }
 }
 
 .lead-toggle {
@@ -53,8 +65,16 @@ table.lead-table :is(th, td) {
 }
 
 .entry-dialog-body {
-  max-height: min(70dvh, 720px);
-  overflow: auto;
+  max-height: min(68dvh, 680px);
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.entry-form {
+  min-width: 0;
+  max-width: 100%;
 }
 
 @layer components {

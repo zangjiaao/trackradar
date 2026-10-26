@@ -38,7 +38,7 @@ export default async function OpportunitiesPage({
     const names = new Map(tracks.map((item) => [item.code, item.name]));
     const heat = trackHeat(events);
     return (
-      <VStack gap={4} className="page-column">
+      <VStack gap={4} className="page-column opportunity-list">
         <HStack gap={3} wrap="wrap" justify="between" vAlign="end">
           <PageHeader
             title="机会清单"
@@ -52,7 +52,6 @@ export default async function OpportunitiesPage({
             {track ? "这个赛道还没有机会。" : "还没有机会。到对话里从信源拉取，或在任务里执行一次定时任务。也可以点「新增」手动录入。"}
           </Text>
         ) : (
-          <div className="lead-scroll">
           <Table className="lead-table" density="compact" textOverflow="wrap" verticalAlign="top">
             <TableHeader>
               <TableRow>
@@ -87,7 +86,6 @@ export default async function OpportunitiesPage({
               ))}
             </TableBody>
           </Table>
-          </div>
         )}
       </VStack>
     );

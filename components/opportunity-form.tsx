@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
 import { CheckboxList, CheckboxListItem } from "@astryxdesign/core/CheckboxList";
-import { Grid } from "@astryxdesign/core/Grid";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Selector } from "@astryxdesign/core/Selector";
 import { Text } from "@astryxdesign/core/Text";
@@ -131,13 +130,11 @@ export function OpportunityForm({ tracks, onSaved }: { tracks: TrackOption[]; on
   }
 
   return (
-    <VStack gap={3}>
-      <Grid columns={{ minWidth: 220, max: 2 }} gap={3}>
-        <TextInput label="标题" value={title} onChange={setTitle} placeholder="例如 企业知识库 RAG 搭建" width="100%" />
-        <TextInput label="原链接" value={url} onChange={setUrl} placeholder="https://" width="100%" />
-        <Selector label="站点" value={site} options={SITE_OPTIONS} onChange={(value) => setSite(value as MaterialSite)} />
-        <TextInput label="地域" value={region} onChange={setRegion} placeholder="可选，例如 杭州" width="100%" isOptional />
-      </Grid>
+    <VStack gap={3} className="entry-form">
+      <TextInput label="标题" value={title} onChange={setTitle} placeholder="例如 企业知识库 RAG 搭建" width="100%" />
+      <TextInput label="原链接" value={url} onChange={setUrl} placeholder="https://" width="100%" />
+      <Selector label="站点" value={site} options={SITE_OPTIONS} onChange={(value) => setSite(value as MaterialSite)} width="100%" />
+      <TextInput label="地域" value={region} onChange={setRegion} placeholder="可选，例如 杭州" width="100%" isOptional />
       <TextArea
         label="你看到的内容"
         rows={4}
