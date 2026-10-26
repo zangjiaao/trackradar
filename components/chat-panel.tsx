@@ -1,7 +1,8 @@
 "use client";
 
-import { useChat } from "@ai-sdk/react";
-import { useEffect, useState } from "react";
+import { Chat, useChat } from "@ai-sdk/react";
+import type { UIMessage } from "ai";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import {
@@ -16,6 +17,7 @@ import {
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { FORMAT_SAMPLE, MessageMarkdown } from "@/components/message-markdown";
+import { getBrowserChat, getChatDraft, getServerChatDraft, restoreBrowserChat, setChatDraft, subscribeChatDraft } from "@/components/chat-session";
 
 const SUGGESTIONS = [
   "到已启用信源回看大约一年，把能映射到 T01–T10 的条目写入机会清单，保留每条原始链接。",
@@ -33,9 +35,20 @@ function toolStatus(state?: string): ChatToolCallStatus {
 }
 
 export function ChatPanel() {
-  const { messages, sendMessage, status, error, stop } = useChat();
-  const [draft, setDraft] = useState("");
+  // 离开页面会卸载这里。Chat 实例留在模块里，同一标签页切回来仍是这一通，流式请求也不会被中止。
+  const chat = useMemo(
+    () => (typeof window === "undefined" ? new Chat<UIMessage>({ id: "trackradar-ssr", messages: [] }) : getBrowserChat()),
+    [],
+  );
+  const { messages, sendMessage, status, error, stop } = useChat({ chat });
+  const draft = useSyncExternalStore(subscribeChatDraft, getChatDraft, getServerChatDraft);
+  const [restored, setRestored] = useState(messages.length > 0);
   const [config, setConfig] = useState<Status | null>(null);
+
+  useEffect(() => {
+    restoreBrowserChat(chat);
+    setRestored(true);
+  }, [chat]);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,7 +78,7 @@ export function ChatPanel() {
   function submit(text: string) {
     const value = text.trim();
     if (!value || blocked) return;
-    setDraft("");
+    setChatDraft("");
     void sendMessage({ text: value });
   }
 
@@ -77,7 +90,7 @@ export function ChatPanel() {
         <ChatComposer
           data-chat-composer=""
           value={draft}
-          onChange={setDraft}
+          onChange={setChatDraft}
           onSubmit={submit}
           onStop={() => stop()}
           isStopShown={busy}
@@ -114,6 +127,7 @@ export function ChatPanel() {
           </Text>
         )}
         {messages.length === 0 ? (
+          restored ? (
           <ChatMessage sender="assistant" name="排版示例">
             <ChatMessageBubble variant="ghost" width="100%">
               <MessageMarkdown text={FORMAT_SAMPLE} streaming={false} />
@@ -122,6 +136,7 @@ export function ChatPanel() {
               从下面的问题开始，或自己写一句。助手会把结论限制在 T01–T10。
             </Text>
           </ChatMessage>
+          ) : null
         ) : (
           messages.map((message) => {
             const sender = message.role === "user" ? "user" : "assistant";
