@@ -142,7 +142,8 @@ export function presentReading(
   const storedExcerpt = input.relevant_excerpt?.trim() ?? "";
   const storedOpportunity = input.opportunity_note?.trim() ?? "";
   const reading = readPolicy(input.title, dictionaries);
-  const summary = storedSummary && !isPlaceholderSummary(storedSummary) ? storedSummary : reading.keep ? reading.summary : storedSummary;
+  const usableSummary = storedSummary && !isPlaceholderSummary(storedSummary) ? storedSummary : "";
+  const summary = usableSummary || (reading.keep ? reading.summary : "");
   const excerpt = storedExcerpt || (reading.keep ? reading.excerpt : "");
   const opportunity = storedOpportunity || (reading.keep ? reading.opportunity : "");
   return {

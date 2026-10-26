@@ -37,6 +37,14 @@ test("发布日优先用链接里的完整日期，没有则标发现", () => {
   });
   assert.equal(discovered.kind, "发现");
   assert.equal(discovered.label, "发现 2026-10-27");
+
+  const dashed = leadWhen({
+    title: "关于组织开展2026年下半年创新型中小企业申报及复核工作的通知 2026-09-24",
+    url: "https://www.hhtz.gov.cn/col/col1487002/art/2026/art_1.html",
+    published_at: null,
+    created_at: "2026-10-26T10:00:41.257Z",
+  });
+  assert.equal(dashed.label, "发布 2026-09-24");
 });
 
 test("价值分按权重说明，0 或空显示未评分", () => {
@@ -93,6 +101,15 @@ test("占位摘要会按标题补上解读和机会，人工摘要保留", () =>
   });
   assert.equal(manual.summary, "来自猪八戒。有人求购知识库。");
   assert.match(manual.opportunity ?? "", /知识库/);
+
+  const broad = presentReading({
+    title: "关于组织开展创新型中小企业申报及复核工作的通知",
+    summary: "信源回看约 365 天，映射 T09。分数是价值分，不是调研结论。",
+    relevant_excerpt: null,
+    opportunity_note: null,
+  });
+  assert.equal(broad.summary, null);
+  assert.equal(broad.opportunity, null);
 });
 
 test("默认按价值分从高到低，未评分沉底", () => {
