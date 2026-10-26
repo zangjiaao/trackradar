@@ -8,8 +8,6 @@ export const POLICY_READING_RULES =
 
 export const PROMPT_V1 = `${PROMPT_V1_CORE}${POLICY_READING_RULES}`;
 
-export const PROMPT_V1_BEFORE_POLICY = PROMPT_V1_CORE;
-
 export const TOOL_ADDENDUM = [
   "你可以使用工具 list_tracks、list_leads、search_sources、scan_sources、add_opportunity。",
   "引用任何政策或线索时必须保留原始链接。",
