@@ -14,12 +14,34 @@ const RULES: Array<{ code: string; words: string[] }> = [
   { code: "T02", words: ["智能体", "Agent", "agent"] },
 ];
 
-export function guessTrack(text: string): string | null {
-  if (EXCLUDED.test(text)) return null;
+/** 与内置规则相同，更具体的赛道在前。主赛道取这个顺序的第一个命中。 */
+export const TRACK_MATCH_ORDER = RULES.map((rule) => rule.code);
+
+export type TrackDictionary = { code: string; keywords: string };
+
+export function keywordList(keywords: string): string[] {
+  return keywords
+    .split(/[\n,，、]/)
+    .map((word) => word.trim().slice(0, 40))
+    .filter(Boolean)
+    .slice(0, 20);
+}
+
+/** 返回全部命中的赛道，顺序仍是更具体的在前。词典里写了关键词就用词典，留空则用内置词。 */
+export function guessTracks(text: string, dictionaries?: TrackDictionary[]): string[] {
+  if (EXCLUDED.test(text)) return [];
+  const custom = new Map((dictionaries ?? []).map((item) => [item.code, keywordList(item.keywords)]));
+  const found: string[] = [];
   for (const rule of RULES) {
-    if (rule.words.some((word) => text.includes(word))) return rule.code;
+    const override = custom.get(rule.code);
+    const words = override && override.length > 0 ? override : rule.words;
+    if (words.some((word) => word && text.includes(word))) found.push(rule.code);
   }
-  return null;
+  return found;
+}
+
+export function guessTrack(text: string, dictionaries?: TrackDictionary[]): string | null {
+  return guessTracks(text, dictionaries)[0] ?? null;
 }
 
 export function exclusionNote(text: string): string | null {

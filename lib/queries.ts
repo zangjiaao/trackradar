@@ -2,12 +2,37 @@ import type { KeywordSetRow, LeadRow, ParsedSample, Platform, PromptRow, SampleR
 import { isPlatform, isSide } from "./domain";
 import { getDb } from "./db";
 import { fetchPolicyList } from "./fetch-list";
-import { guessTrack } from "./guess";
+import { guessTrack, guessTracks, keywordList, type TrackDictionary } from "./guess";
+import { isTrackCode, sortTrackCodes, writeLeadTracks } from "./lead-tracks";
 import { skeletonScores } from "./scoring";
 
 export async function listTracks(): Promise<TrackRow[]> {
-  const { results } = await getDb().prepare("SELECT code, name, summary, studio_fit, sort_order FROM tracks ORDER BY sort_order").all<TrackRow>();
+  const { results } = await getDb()
+    .prepare("SELECT code, name, summary, studio_fit, keywords, sort_order FROM tracks ORDER BY sort_order")
+    .all<TrackRow>();
   return results;
+}
+
+export async function loadTrackDictionaries(database: D1Database = getDb()): Promise<TrackDictionary[]> {
+  const { results } = await database.prepare("SELECT code, keywords FROM tracks").all<{ code: string; keywords: string | null }>();
+  return results.map((row) => ({ code: row.code, keywords: row.keywords ?? "" }));
+}
+
+export async function saveTrack(input: { code: string; name: string; summary: string; studio_fit: string; keywords: string }): Promise<void> {
+  if (!isTrackCode(input.code)) throw new Error("赛道编号只能是 T01–T10。");
+  const name = input.name.trim();
+  const summary = input.summary.trim();
+  const studioFit = input.studio_fit.trim();
+  const keywords = keywordList(input.keywords).join("\n");
+  if (name.length < 2 || name.length > 40) throw new Error("赛道名称需要 2–40 字。");
+  if (summary.length < 4 || summary.length > 400) throw new Error("说明需要 4–400 字。");
+  if (studioFit.length < 4 || studioFit.length > 400) throw new Error("工作室怎么接需要 4–400 字。");
+  const existing = await getDb().prepare("SELECT code FROM tracks WHERE code = ?").bind(input.code).first<{ code: string }>();
+  if (!existing) throw new Error("找不到该赛道。");
+  await getDb()
+    .prepare("UPDATE tracks SET name = ?, summary = ?, studio_fit = ?, keywords = ? WHERE code = ?")
+    .bind(name, summary, studioFit, keywords, input.code)
+    .run();
 }
 
 export async function listSources(): Promise<SourceRow[]> {
@@ -17,14 +42,66 @@ export async function listSources(): Promise<SourceRow[]> {
   return results;
 }
 
-export async function listLeads(limit = 50): Promise<LeadRow[]> {
+type LeadQueryRow = Omit<LeadRow, "track_codes">;
+
+async function attachTrackCodes(database: D1Database, rows: LeadQueryRow[]): Promise<LeadRow[]> {
+  if (rows.length === 0) return [];
+  const placeholders = rows.map(() => "?").join(", ");
+  const { results } = await database
+    .prepare(`SELECT lead_id, track_code FROM lead_tracks WHERE lead_id IN (${placeholders})`)
+    .bind(...rows.map((row) => row.id))
+    .all<{ lead_id: string; track_code: string }>();
+  const grouped = new Map<string, string[]>();
+  for (const row of results) {
+    const list = grouped.get(row.lead_id) ?? [];
+    list.push(row.track_code);
+    grouped.set(row.lead_id, list);
+  }
+  return rows.map((row) => ({
+    ...row,
+    track_codes: sortTrackCodes(grouped.get(row.id) ?? (row.track_code ? [row.track_code] : [])),
+  }));
+}
+
+export async function listLeads(limit = 50, trackCode?: string | null): Promise<LeadRow[]> {
+  const database = getDb();
+  const track = trackCode && isTrackCode(trackCode) ? trackCode : null;
+  const statement = track
+    ? database
+        .prepare(
+          `SELECT id, source_id, track_code, title, url, summary, region, side, site, score_total, origin, created_at
+           FROM leads
+           WHERE id IN (SELECT lead_id FROM lead_tracks WHERE track_code = ?)
+              OR track_code = ?
+           ORDER BY created_at DESC LIMIT ?`,
+        )
+        .bind(track, track, limit)
+    : database
+        .prepare(
+          `SELECT id, source_id, track_code, title, url, summary, region, side, site, score_total, origin, created_at
+           FROM leads ORDER BY created_at DESC LIMIT ?`,
+        )
+        .bind(limit);
+  const { results } = await statement.all<LeadQueryRow>();
+  return attachTrackCodes(database, results);
+}
+
+export async function listTrackEvents(): Promise<{ code: string; createdAt: string }[]> {
   const { results } = await getDb()
     .prepare(
-      `SELECT id, source_id, track_code, title, url, summary, region, side, site, score_total, origin, created_at
-       FROM leads ORDER BY created_at DESC LIMIT ?`,
+      `SELECT track_code AS code, created_at AS createdAt
+       FROM (
+         SELECT lt.track_code AS track_code, l.created_at AS created_at
+         FROM lead_tracks lt
+         JOIN leads l ON l.id = lt.lead_id
+         UNION ALL
+         SELECT l.track_code, l.created_at
+         FROM leads l
+         WHERE l.track_code IS NOT NULL
+           AND l.id NOT IN (SELECT lead_id FROM lead_tracks)
+       )`,
     )
-    .bind(limit)
-    .all<LeadRow>();
+    .all<{ code: string; createdAt: string }>();
   return results;
 }
 
@@ -148,6 +225,7 @@ export async function fetchSourcePreview(sourceId: string, save: boolean) {
     .first<SourceRow>();
   if (!source) throw new Error("找不到该信源。");
   const fetched = await fetchPolicyList(source.list_url);
+  const dictionaries = await loadTrackDictionaries();
   const started = new Date().toISOString();
   let saved = 0;
   if (save && fetched.items.length > 0) {
@@ -169,7 +247,7 @@ export async function fetchSourcePreview(sourceId: string, save: boolean) {
     .run();
   return {
     source,
-    items: fetched.items.map((item) => ({ ...item, track_guess: guessTrack(item.title) })),
+    items: fetched.items.map((item) => ({ ...item, track_guess: guessTrack(item.title, dictionaries) })),
     error: fetched.error ?? null,
     saved,
   };
@@ -177,12 +255,14 @@ export async function fetchSourcePreview(sourceId: string, save: boolean) {
 
 async function insertLeadsFromList(source: SourceRow, items: { title: string; url: string }[]): Promise<number> {
   const database = getDb();
+  const dictionaries = await loadTrackDictionaries(database);
   let saved = 0;
   for (const item of items) {
     const existing = await database.prepare("SELECT id FROM leads WHERE url = ?").bind(item.url).first<{ id: string }>();
     if (existing) continue;
-    const track = guessTrack(item.title);
-    const scores = skeletonScores(item.title, track);
+    const tracks = guessTracks(item.title, dictionaries);
+    const scores = skeletonScores(item.title, tracks[0] ?? null);
+    const id = crypto.randomUUID();
     await database
       .prepare(
         `INSERT INTO leads (
@@ -191,12 +271,12 @@ async function insertLeadsFromList(source: SourceRow, items: { title: string; ur
          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'crawl')`,
       )
       .bind(
-        crypto.randomUUID(),
+        id,
         source.id,
-        track,
+        tracks[0] ?? null,
         item.title,
         item.url,
-        "列表页骨架抓取，分数为启发式骨架分。",
+        tracks.length ? `列表页骨架抓取，映射 ${tracks.join("、")}。分数为启发式骨架分。` : "列表页骨架抓取，分数为启发式骨架分。",
         source.region,
         scores.capability,
         scores.funding_window,
@@ -207,6 +287,7 @@ async function insertLeadsFromList(source: SourceRow, items: { title: string; ur
         scores.total,
       )
       .run();
+    await writeLeadTracks(database, id, tracks);
     saved += 1;
   }
   return saved;

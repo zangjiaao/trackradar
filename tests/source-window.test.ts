@@ -17,6 +17,7 @@ test("约一年内且能映射赛道的条目留下", () => {
   );
   assert.equal(result.keep.length, 1);
   assert.equal(result.keep[0]?.track, "T10");
+  assert.deepEqual(result.keep[0]?.tracks, ["T10"]);
   assert.equal(result.droppedOld, 0);
 });
 

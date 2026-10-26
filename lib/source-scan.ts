@@ -1,5 +1,7 @@
 import type { SourceRow } from "@/lib/domain";
 import { fetchPolicyList } from "@/lib/fetch-list";
+import { writeLeadTracks } from "@/lib/lead-tracks";
+import { loadTrackDictionaries } from "@/lib/queries";
 import { regionsInText, selectOpportunityItems } from "@/lib/source-window";
 import { skeletonScores } from "@/lib/scoring";
 
@@ -62,10 +64,17 @@ async function insertJob(
     .run();
 }
 
-async function saveLead(database: D1Database, source: SourceRow, item: { title: string; url: string; track: string }, lookbackDays: number): Promise<"saved" | "duplicate"> {
+async function saveLead(
+  database: D1Database,
+  source: SourceRow,
+  item: { title: string; url: string; track: string; tracks: string[] },
+  lookbackDays: number,
+): Promise<"saved" | "duplicate"> {
   const existing = await database.prepare("SELECT id FROM leads WHERE url = ?").bind(item.url).first<{ id: string }>();
   if (existing) return "duplicate";
-  const scores = skeletonScores(item.title, item.track);
+  const tracks = item.tracks.length ? item.tracks : [item.track];
+  const scores = skeletonScores(item.title, tracks[0] ?? item.track);
+  const id = crypto.randomUUID();
   await database
     .prepare(
       `INSERT INTO leads (
@@ -74,12 +83,12 @@ async function saveLead(database: D1Database, source: SourceRow, item: { title: 
        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'agent')`,
     )
     .bind(
-      crypto.randomUUID(),
+      id,
       source.id,
-      item.track,
+      tracks[0] ?? item.track,
       item.title,
       item.url,
-      `信源回看约 ${lookbackDays} 天，映射 ${item.track}。分数是骨架分，不是调研结论。`,
+      `信源回看约 ${lookbackDays} 天，映射 ${tracks.join("、")}。分数是骨架分，不是调研结论。`,
       source.region,
       scores.capability,
       scores.funding_window,
@@ -90,6 +99,7 @@ async function saveLead(database: D1Database, source: SourceRow, item: { title: 
       scores.total,
     )
     .run();
+  await writeLeadTracks(database, id, tracks);
   return "saved";
 }
 
@@ -99,6 +109,7 @@ export async function runSourceScan(database: D1Database, request: ScanRequest):
   const now = request.now ?? new Date();
   const fetchList = request.fetchList ?? fetchPolicyList;
   const hints = [...new Set([...regionsInText(request.region), ...regionsInText(request.instruction)])];
+  const dictionaries = await loadTrackDictionaries(database);
   const { results } = await database
     .prepare("SELECT id, region, name, list_url, adapter, enabled, notes FROM sources WHERE enabled = 1 ORDER BY region, name")
     .all<SourceRow>();
@@ -140,7 +151,7 @@ export async function runSourceScan(database: D1Database, request: ScanRequest):
       details.push({ sourceId: row.source.id, name: row.source.name, region: row.source.region, status: "failed", fetched: 0, saved: 0, message });
       continue;
     }
-    const selected = selectOpportunityItems(row.items, lookbackDays, now);
+    const selected = selectOpportunityItems(row.items, lookbackDays, now, dictionaries);
     let saved = 0;
     let duplicate = 0;
     for (const item of selected.keep.slice(0, PER_SOURCE_LIMIT)) {

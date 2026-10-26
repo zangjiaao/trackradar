@@ -1,7 +1,6 @@
 import { Card } from "@astryxdesign/core/Card";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Link } from "@astryxdesign/core/Link";
-import { Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow } from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { DbFallback } from "@/components/db-fallback";
@@ -10,6 +9,7 @@ import { ModelForm } from "@/components/model-form";
 import { PageHeader } from "@/components/page-header";
 import { PromptEditor } from "@/components/prompt-editor";
 import { SourceList } from "@/components/source-list";
+import { TrackEditor } from "@/components/track-editor";
 import { WEIGHT_LABELS, WEIGHTS } from "@/lib/domain";
 import { listSources, listTracks, getActivePrompt } from "@/lib/queries";
 import { readMaterialSites, readPublicModel } from "@/lib/settings";
@@ -58,28 +58,17 @@ export default async function SettingsPage() {
           <VStack gap={3} id="tracks">
             <Heading level={2}>赛道词典</Heading>
             <Text type="supporting" as="p">
-              T01–T10 固定映射。排除汽车、机器人、具身硬件、芯片和服务器制造。
+              名称、说明和关键词可改。编号 T01–T10 固定，不能新增或删除。关键词决定回看时打哪些标签，一行一个，留空则用内置词。排除汽车、机器人、具身硬件、芯片和服务器制造。
             </Text>
-            <Table density="compact" textOverflow="wrap" verticalAlign="top">
-              <TableHeader>
-                <TableRow>
-                  <TableHeaderCell>编号</TableHeaderCell>
-                  <TableHeaderCell>赛道</TableHeaderCell>
-                  <TableHeaderCell>工作室怎么接</TableHeaderCell>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tracks.map((track) => (
-                  <TableRow key={track.code}>
-                    <TableCell>
-                      <Text type="code">{track.code}</Text>
-                    </TableCell>
-                    <TableCell>{track.name}</TableCell>
-                    <TableCell>{track.studio_fit}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <TrackEditor
+              tracks={tracks.map((track) => ({
+                code: track.code,
+                name: track.name,
+                summary: track.summary,
+                studio_fit: track.studio_fit,
+                keywords: track.keywords,
+              }))}
+            />
           </VStack>
         </Card>
         <Card>

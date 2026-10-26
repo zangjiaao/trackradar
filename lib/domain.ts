@@ -39,6 +39,7 @@ export type TrackRow = {
   name: string;
   summary: string;
   studio_fit: string;
+  keywords: string;
   sort_order: number;
 };
 
@@ -95,6 +96,7 @@ export type LeadRow = {
   region: string | null;
   side: string | null;
   site: string | null;
+  track_codes: string[];
   score_total: number | null;
   origin: string;
   created_at: string;

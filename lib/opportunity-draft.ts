@@ -1,9 +1,11 @@
 import { MATERIAL_SITES, SIDE_LABEL, WEIGHTS, type MaterialSite, type Side, isSide } from "@/lib/domain";
-import { exclusionNote, guessTrack } from "@/lib/guess";
+import { exclusionNote, guessTracks, type TrackDictionary } from "@/lib/guess";
+import { sortTrackCodes } from "@/lib/lead-tracks";
 import { skeletonScores, type ScoreParts } from "@/lib/scoring";
 
 export type OpportunityDraft = {
   track_code: string | null;
+  track_codes: string[];
   side: Side;
   summary: string;
   region: string | null;
@@ -36,12 +38,19 @@ function guessRegion(text: string, given: string): string | null {
 }
 
 /** 没有模型时的填表建议：赛道、供需侧、摘要和骨架分。 */
-export function heuristicDraft(input: { title: string; notes?: string; site?: string; region?: string }): OpportunityDraft {
+export function heuristicDraft(input: {
+  title: string;
+  notes?: string;
+  site?: string;
+  region?: string;
+  dictionaries?: TrackDictionary[];
+}): OpportunityDraft {
   const title = input.title.trim();
   const notes = input.notes?.trim() ?? "";
   const text = `${title}\n${notes}`;
   const excluded = exclusionNote(text);
-  const track = excluded ? null : guessTrack(text);
+  const tracks = excluded ? [] : guessTracks(text, input.dictionaries);
+  const track = tracks[0] ?? null;
   const side = guessSide(text);
   const region = guessRegion(text, input.region ?? "");
   const scores = skeletonScores(title || notes, track);
@@ -51,8 +60,8 @@ export function heuristicDraft(input: { title: string; notes?: string; site?: st
     : [site && `来自${site}`, notes || title].filter(Boolean).join("。").slice(0, 400);
   const rationale = excluded
     ? "本地规则判断这条落在排除方向，不映射赛道。分数只作排序起点。"
-    : `本地规则建议赛道 ${track ?? "未映射"}、${SIDE_LABEL[side]}。分数是骨架分，不是调研结论。`;
-  return { track_code: track, side, summary, region, scores, rationale, mode: "heuristic" };
+    : `本地规则建议赛道 ${tracks.length ? tracks.join("、") : "未映射"}、${SIDE_LABEL[side]}。分数是骨架分，不是调研结论。`;
+  return { track_code: track, track_codes: tracks, side, summary, region, scores, rationale, mode: "heuristic" };
 }
 
 export function normalizeSide(value: unknown): Side {
@@ -111,6 +120,7 @@ export type OpportunityFields = {
   notes?: string;
   region?: string;
   track_code?: string | null;
+  track_codes?: string[] | null;
   side?: string | null;
   summary?: string | null;
   scores?: Partial<ScoreParts> | null;
@@ -122,26 +132,28 @@ export type FinalOpportunity = {
   site: MaterialSite;
   region: string | null;
   track_code: string | null;
+  track_codes: string[];
   side: Side;
   summary: string;
   scores: ScoreParts;
 };
 
 /** 把表单或对话工具的字段收成一条可入库的机会。未给的赛道、侧和分数用本地规则补。 */
-export function finalizeOpportunity(input: OpportunityFields): FinalOpportunity {
+export function finalizeOpportunity(input: OpportunityFields, dictionaries?: TrackDictionary[]): FinalOpportunity {
   const title = input.title.trim().slice(0, 300);
   const url = input.url.trim().slice(0, 2000);
   if (!title) throw new Error("请填写标题。");
   if (!/^https?:\/\//i.test(url)) throw new Error("链接需要以 http:// 或 https:// 开头。");
   const site = normalizeSite(input.site);
   const notes = input.notes?.trim().slice(0, 800) ?? "";
-  const draft = heuristicDraft({ title, notes, site, region: input.region });
+  const draft = heuristicDraft({ title, notes, site, region: input.region, dictionaries });
   const excluded = exclusionNote(`${title}\n${notes}`);
-  let track: string | null;
-  if (excluded) track = null;
-  else if (input.track_code === undefined) track = draft.track_code;
-  else if (input.track_code && TRACK_CODE.test(input.track_code)) track = input.track_code;
-  else track = null;
+  let tracks: string[];
+  if (excluded) tracks = [];
+  else if (input.track_codes !== undefined) tracks = sortTrackCodes(input.track_codes ?? []);
+  else if (input.track_code === undefined) tracks = draft.track_codes;
+  else if (input.track_code && TRACK_CODE.test(input.track_code)) tracks = [input.track_code];
+  else tracks = [];
   const side = input.side === undefined ? draft.side : normalizeSide(input.side);
   const summary = (input.summary?.trim() || draft.summary).slice(0, 800);
   const regionText = input.region === undefined ? (draft.region ?? "") : input.region.trim().slice(0, 40);
@@ -150,7 +162,8 @@ export function finalizeOpportunity(input: OpportunityFields): FinalOpportunity 
     url,
     site,
     region: regionText || null,
-    track_code: track,
+    track_code: tracks[0] ?? null,
+    track_codes: tracks,
     side,
     summary,
     scores: input.scores ? applySuggestedScores(input.scores, draft.scores) : draft.scores,

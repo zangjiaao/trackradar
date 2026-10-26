@@ -1,4 +1,4 @@
-import { exclusionNote, guessTrack } from "@/lib/guess";
+import { exclusionNote, guessTracks, type TrackDictionary } from "@/lib/guess";
 
 const REGIONS = ["上海", "北京", "深圳", "杭州", "西安", "银川", "宁夏"];
 
@@ -33,12 +33,13 @@ export function regionsInText(text: string | null | undefined): string[] {
   return REGIONS.filter((region) => text.includes(region));
 }
 
-export type KeptItem = { title: string; url: string; track: string; dated: boolean };
+export type KeptItem = { title: string; url: string; track: string; tracks: string[]; dated: boolean };
 
 export function selectOpportunityItems(
   items: { title: string; url: string }[],
   lookbackDays: number,
   now = new Date(),
+  dictionaries?: TrackDictionary[],
 ): { keep: KeptItem[]; droppedOld: number; droppedExcluded: number; droppedUnmapped: number } {
   const keep: KeptItem[] = [];
   let droppedOld = 0;
@@ -54,12 +55,13 @@ export function selectOpportunityItems(
       droppedOld += 1;
       continue;
     }
-    const track = guessTrack(item.title);
+    const tracks = guessTracks(item.title, dictionaries);
+    const track = tracks[0];
     if (!track) {
       droppedUnmapped += 1;
       continue;
     }
-    keep.push({ title: item.title, url: item.url, track, dated: Boolean(found) });
+    keep.push({ title: item.title, url: item.url, track, tracks, dated: Boolean(found) });
   }
   return { keep, droppedOld, droppedExcluded, droppedUnmapped };
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
+import { CheckboxList, CheckboxListItem } from "@astryxdesign/core/CheckboxList";
 import { Grid } from "@astryxdesign/core/Grid";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Selector } from "@astryxdesign/core/Selector";
@@ -17,6 +18,7 @@ type TrackOption = { code: string; name: string };
 
 type Suggestion = {
   track_code: string | null;
+  track_codes?: string[];
   side: Side;
   summary: string;
   region: string | null;
@@ -35,7 +37,7 @@ export function OpportunityForm({ tracks }: { tracks: TrackOption[] }) {
   const [site, setSite] = useState<MaterialSite>("zbj");
   const [region, setRegion] = useState("");
   const [notes, setNotes] = useState("");
-  const [track, setTrack] = useState("none");
+  const [selectedTracks, setSelectedTracks] = useState<string[]>([]);
   const [side, setSide] = useState<Side>("demand");
   const [summary, setSummary] = useState("");
   const [scores, setScores] = useState<ScoreParts | null>(null);
@@ -45,11 +47,11 @@ export function OpportunityForm({ tracks }: { tracks: TrackOption[] }) {
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const trackOptions = [{ value: "none", label: "未映射" }, ...tracks.map((item) => ({ value: item.code, label: `${item.code} ${item.name}` }))];
   const canSave = title.trim().length > 0 && /^https?:\/\//i.test(url.trim());
 
   function applySuggestion(suggestion: Suggestion) {
-    setTrack(suggestion.track_code ?? "none");
+    const codes = suggestion.track_codes?.length ? suggestion.track_codes : suggestion.track_code ? [suggestion.track_code] : [];
+    setSelectedTracks(codes);
     setSide(suggestion.side);
     setSummary(suggestion.summary);
     setRegion(suggestion.region ?? "");
@@ -93,7 +95,7 @@ export function OpportunityForm({ tracks }: { tracks: TrackOption[] }) {
           site,
           notes,
           region,
-          ...(assisted ? { track_code: track === "none" ? null : track, side, summary, scores } : {}),
+          ...(assisted ? { track_codes: selectedTracks, side, summary, scores } : {}),
         }),
       });
       const body = (await response.json()) as { error?: string };
@@ -110,7 +112,7 @@ export function OpportunityForm({ tracks }: { tracks: TrackOption[] }) {
       setRationale(null);
       setMode(null);
       setAssisted(false);
-      setTrack("none");
+      setSelectedTracks([]);
       setSide("demand");
       setMessage("已写入机会清单。");
       router.refresh();
@@ -142,10 +144,12 @@ export function OpportunityForm({ tracks }: { tracks: TrackOption[] }) {
       </HStack>
       {assisted ? (
         <VStack gap={3}>
-          <Grid columns={{ minWidth: 220, max: 2 }} gap={3}>
-            <Selector label="赛道" value={track} options={trackOptions} onChange={setTrack} />
-            <Selector label="供需侧" value={side} options={SIDE_OPTIONS} onChange={(value) => setSide(value as Side)} />
-          </Grid>
+          <CheckboxList label="赛道" description="可以多选。都不选则不映射赛道。" value={selectedTracks} onChange={setSelectedTracks}>
+            {tracks.map((item) => (
+              <CheckboxListItem key={item.code} label={`${item.code} ${item.name}`} value={item.code} />
+            ))}
+          </CheckboxList>
+          <Selector label="供需侧" value={side} options={SIDE_OPTIONS} onChange={(value) => setSide(value as Side)} />
           <TextArea label="摘要" rows={3} value={summary} width="100%" onChange={setSummary} />
           {scores ? (
             <Text type="supporting" as="p">

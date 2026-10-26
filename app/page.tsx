@@ -6,24 +6,47 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { DbFallback } from "@/components/db-fallback";
 import { OpportunityForm } from "@/components/opportunity-form";
 import { PageHeader } from "@/components/page-header";
+import { TrackHeat } from "@/components/track-heat";
 import { ORIGIN_LABEL, SIDE_LABEL, type Side } from "@/lib/domain";
+import { isTrackCode } from "@/lib/lead-tracks";
 import { siteLabel } from "@/lib/opportunity-draft";
-import { listLeads, listTracks } from "@/lib/queries";
+import { listLeads, listTrackEvents, listTracks } from "@/lib/queries";
+import { trackHeat } from "@/lib/track-heat";
 
 export const dynamic = "force-dynamic";
 
-export default async function OpportunitiesPage() {
+function trackTags(codes: string[], names: Map<string, string>): string {
+  if (codes.length === 0) return "—";
+  return codes
+    .map((code) => {
+      const short = names.get(code)?.split(/[/／]/)[0]?.trim();
+      return short ? `${code} ${short}` : code;
+    })
+    .join(" · ");
+}
+
+export default async function OpportunitiesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ track?: string }> | { track?: string };
+}) {
   try {
-    const [leads, tracks] = await Promise.all([listLeads(), listTracks()]);
+    const params = searchParams ? await searchParams : {};
+    const requested = typeof params.track === "string" ? params.track : "";
+    const track = isTrackCode(requested) ? requested : null;
+    const [leads, tracks, events] = await Promise.all([listLeads(50, track), listTracks(), listTrackEvents()]);
+    const names = new Map(tracks.map((item) => [item.code, item.name]));
+    const heat = trackHeat(events);
     return (
       <VStack gap={6} maxWidth={1100} className="mx-auto w-full">
         <PageHeader
           title="机会清单"
-          description="这里看助手从已配置信源带回的机会。想追问就回到对话。定时自动找新机会在任务页。下面的手动录入是辅助。每条都保留原始链接。"
+          description="这里看助手从已配置信源带回的机会。想追问就回到对话。定时自动找新机会在任务页。下面的手动录入是辅助。每条都保留原始链接，一条可以属于多个赛道。"
         />
+        <TrackHeat tracks={tracks.map((item) => ({ code: item.code, name: item.name }))} heat={heat} selected={track} />
         {leads.length === 0 ? (
           <Text type="supporting" as="p">
-            还没有机会。到对话里回看已启用信源，或在任务里执行一次定时任务。也可以在下面手动录入。
+            {track ? "这个赛道还没有机会。" : "还没有机会。到对话里回看已启用信源，或在任务里执行一次定时任务。也可以在下面手动录入。"}
           </Text>
         ) : (
           <Table density="compact" textOverflow="wrap" verticalAlign="top">
@@ -54,7 +77,7 @@ export default async function OpportunitiesPage() {
                       ) : null}
                     </VStack>
                   </TableCell>
-                  <TableCell>{lead.track_code ?? "—"}</TableCell>
+                  <TableCell>{trackTags(lead.track_codes, names)}</TableCell>
                   <TableCell>{lead.side && lead.side in SIDE_LABEL ? SIDE_LABEL[lead.side as Side] : "—"}</TableCell>
                   <TableCell>{siteLabel(lead.site)}</TableCell>
                   <TableCell>{lead.region ?? "—"}</TableCell>

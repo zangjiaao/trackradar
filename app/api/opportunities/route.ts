@@ -19,6 +19,10 @@ export async function POST(request: Request) {
         notes: typeof body.notes === "string" ? body.notes : undefined,
         region: "region" in body && typeof body.region === "string" ? body.region : undefined,
         track_code: "track_code" in body ? (typeof body.track_code === "string" ? body.track_code : null) : undefined,
+        track_codes:
+          "track_codes" in body && Array.isArray(body.track_codes)
+            ? body.track_codes.filter((item): item is string => typeof item === "string")
+            : undefined,
         side: "side" in body ? (typeof body.side === "string" ? body.side : null) : undefined,
         summary: "summary" in body ? (typeof body.summary === "string" ? body.summary : null) : undefined,
         scores: isScores(body.scores) ? body.scores : undefined,

@@ -1,9 +1,11 @@
 import { getDb } from "@/lib/db";
+import { writeLeadTracks } from "@/lib/lead-tracks";
 import { finalizeOpportunity, type OpportunityFields } from "@/lib/opportunity-draft";
+import { loadTrackDictionaries } from "@/lib/queries";
 import { recordWork } from "@/lib/work-log";
 
 export async function saveOpportunity(input: OpportunityFields, kind: "manual_entry" | "tool_add_opportunity") {
-  const lead = finalizeOpportunity(input);
+  const lead = finalizeOpportunity(input, await loadTrackDictionaries());
   const database = getDb();
   const existing = await database.prepare("SELECT id FROM leads WHERE url = ?").bind(lead.url).first<{ id: string }>();
   if (existing) throw new Error("这条链接已经在机会清单里。");
@@ -33,6 +35,7 @@ export async function saveOpportunity(input: OpportunityFields, kind: "manual_en
       lead.scores.total,
     )
     .run();
+  await writeLeadTracks(database, id, lead.track_codes);
   const verb = kind === "manual_entry" ? "录入机会" : "对话写入机会";
   await recordWork({ kind, status: "done", message: `${verb}：${lead.title}｜${lead.url}` });
   return { id, lead };
