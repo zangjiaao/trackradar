@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { finalizeOpportunity, heuristicDraft } from "../lib/opportunity-draft.ts";
+import { finalizeOpportunity, heuristicDraft, normalizeSite } from "../lib/opportunity-draft.ts";
 
 test("人工素材按标题建议赛道和需求侧", () => {
   const draft = heuristicDraft({
@@ -67,6 +67,17 @@ test("填表建议会用赛道词典里的关键词", () => {
   });
   assert.equal(draft.track_code, "T01");
   assert.deepEqual(draft.track_codes, ["T01"]);
+});
+
+test("Fiverr 可以作为录入站点", () => {
+  assert.equal(normalizeSite("fiverr"), "fiverr");
+  assert.equal(normalizeSite("Fiverr"), "fiverr");
+  const draft = heuristicDraft({
+    title: "预约应用的落地页",
+    notes: "Fiverr 上有人求购界面",
+    site: "fiverr",
+  });
+  assert.ok(draft.summary.includes("Fiverr"));
 });
 
 test("没有 http 链接时拒绝", () => {

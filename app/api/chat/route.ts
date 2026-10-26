@@ -117,7 +117,7 @@ export async function POST(request: Request) {
         },
       }),
       scan_sources: tool({
-        description: "到已启用的政策信源回看大约一年的列表页。先解读，只把和工作室能力明显相关的政策写入机会清单，并保存摘要解读、相关片段、机会说明、赛道标签和原链接。过宽的不入库。只读列表标题，不翻全站。执行过程记在任务页。",
+        description: "到已启用的政策信源回看大约一年的列表页。先解读，只把和工作室能力明显相关的政策写入机会清单。能打开的通知再读这一篇正文，不翻全站。执行过程记在任务页。",
         inputSchema: z.object({
           lookback_days: z.number().int().min(30).max(800).optional().describe("回看天数，默认 365"),
           region: z.string().optional().describe("只看某个地域，如上海、北京"),
@@ -153,7 +153,7 @@ export async function POST(request: Request) {
         inputSchema: z.object({
           title: z.string().describe("素材标题"),
           url: z.string().describe("原始 http(s) 链接"),
-          site: z.string().optional().describe("站点代码或中文名：opc、zbj、58、xhs、xianyu、taobao、channels、other"),
+          site: z.string().optional().describe("站点代码或中文名：opc、zbj、fiverr、58、xhs、xianyu、taobao、channels、other"),
           notes: z.string().optional().describe("用户看到的求购、报价或笔记"),
           region: z.string().optional(),
           track_code: z.string().optional().describe("主赛道 T01–T10，不确定就省略"),

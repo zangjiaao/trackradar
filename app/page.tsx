@@ -35,7 +35,7 @@ export default async function OpportunitiesPage({
         <HStack gap={3} wrap="wrap" justify="between" vAlign="end">
           <PageHeader
             title="机会"
-            description="用来找有价值的情报。卡片先写我们能接什么、政策福利、参与路径和门槛。有原文发布日就标「发布」，只有抓取入库日就标「入库」。价值分只显示数字。"
+            description="用来找有价值的情报。卡片先写我们能接什么、政策福利、参与路径和门槛。有原文发布日就标「发布」，只有抓取入库日就标「入库」。价值分只显示数字。市场案例从「新增」录入，站点含猪八戒和 Fiverr。"
           />
           <OpportunityEntry tracks={tracks.map((item) => ({ code: item.code, name: item.name }))} />
         </HStack>

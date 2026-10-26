@@ -21,7 +21,7 @@ import { getBrowserChat, getChatDraft, getServerChatDraft, restoreBrowserChat, s
 
 const SUGGESTIONS = [
   "到已启用信源回看大约一年，把能映射到 T01–T10 的条目写入机会清单，保留每条原始链接。",
-  "看最近的机会清单，按默认权重选出最该先做的三条，并给出 demo 切口。",
+  "结合政策福利、门槛和已录入的猪八戒、Fiverr 案例，建议工作室下一步该做哪个方向的 demo。",
   "我在猪八戒看到一条知识库需求，请写入机会清单。标题是企业知识库 RAG 搭建，链接 https://example.com/kb-zbj ，站点猪八戒，地域杭州，笔记是有人求购、预算面议。",
 ];
 

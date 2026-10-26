@@ -19,7 +19,7 @@ export function OpportunityEntry({ tracks }: { tracks: TrackOption[] }) {
           header={
             <DialogHeader
               title="新增机会 / 素材"
-              subtitle="人工找到的材料写在这里。可以先让 Agent 补全赛道、解读和机会说明。"
+              subtitle="猪八戒、Fiverr 这类市场案例写在这里，站点选 Fiverr。到对话里把它和政策福利、门槛放在一起，问下一步该做什么 demo。"
               onOpenChange={setOpen}
             />
           }

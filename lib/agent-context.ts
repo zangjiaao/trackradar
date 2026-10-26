@@ -31,10 +31,12 @@ export async function buildRuntimeContext(): Promise<string> {
     leads.length ? "最近机会：" : "最近机会：清单还是空的。",
     ...leads.map((lead) => {
       const tracks = lead.track_codes.length ? lead.track_codes.join("、") : (lead.track_code ?? "未映射");
+      const kind = lead.origin === "manual" ? "案例" : "政策";
       const place = namedSite(lead.site) ?? lead.source_name?.trim() ?? null;
       const angle = lead.studio_angle?.trim() || lead.opportunity_note?.trim() || null;
       const benefit = lead.subsidy_note?.trim() || null;
-      return `- ${[lead.title, `赛道 ${tracks}`, namedSide(lead.side), place, lead.region?.trim() || null, formatValueScore(lead.score_total), angle ? `机会 ${angle}` : null, benefit ? `福利 ${benefit}` : null, lead.url].filter(Boolean).join("｜")}`;
+      const threshold = lead.who_can_apply?.trim() || null;
+      return `- ${[kind, lead.title, `赛道 ${tracks}`, namedSide(lead.side), place, lead.region?.trim() || null, formatValueScore(lead.score_total), angle ? `机会 ${angle}` : null, benefit ? `福利 ${benefit}` : null, threshold ? `门槛 ${threshold}` : null, lead.url].filter(Boolean).join("｜")}`;
     }),
   ];
   return lines.join("\n");

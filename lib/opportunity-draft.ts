@@ -91,6 +91,8 @@ export function normalizeSite(value: string | null | undefined): MaterialSite {
   const text = value?.trim() ?? "";
   if (!text) return "other";
   if (isMaterialSite(text)) return text;
+  const lowered = text.toLowerCase();
+  if (isMaterialSite(lowered)) return lowered;
   const match = MATERIAL_SITES.find((site) => text === site.label || text.includes(site.label));
   return match?.value ?? "other";
 }

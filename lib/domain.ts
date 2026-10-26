@@ -56,6 +56,7 @@ export type SourceRow = {
 export const MATERIAL_SITES = [
   { value: "opc", label: "OPC 社区" },
   { value: "zbj", label: "猪八戒" },
+  { value: "fiverr", label: "Fiverr" },
   { value: "58", label: "58同城" },
   { value: "xhs", label: "小红书" },
   { value: "xianyu", label: "闲鱼" },
@@ -67,7 +68,7 @@ export const MATERIAL_SITES = [
 export type MaterialSite = (typeof MATERIAL_SITES)[number]["value"];
 
 export const DEFAULT_MATERIAL_SITES =
-  "OPC 社区、猪八戒、58同城、小红书、闲鱼、淘宝、视频号。这些站点由人工打开查找，再回到机会页录入。不自动爬取。";
+  "OPC 社区、猪八戒、Fiverr、58同城、小红书、闲鱼、淘宝、视频号。这些站点由人工打开查找，再回到机会页录入。不自动爬取。";
 
 export const ORIGIN_LABEL: Record<string, string> = {
   seed: "种子",
