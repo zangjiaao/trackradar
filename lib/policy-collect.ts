@@ -44,6 +44,8 @@ export type ScanTally = {
   budgetSkipped: number;
   duplicate: number;
   scorer: ScoreMode;
+  /** 评估没全部成功时的短原因，例如超时或接口状态。不要放密钥。 */
+  scorerNote?: string;
 };
 
 /** 正文从标题最后一次出现处截起，避开页头导航里的「政务」「园区」。 */
@@ -107,9 +109,17 @@ export function clampRelevance(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-function scorerLabel(scorer: ScoreMode): string {
-  if (scorer === "agent") return "解读用 Agent";
-  if (scorer === "fallback") return "模型未返回，未写入政策";
+function scorerNoteText(note?: string): string {
+  if (!note) return "";
+  const text = note.replace(/\s+/g, " ").trim();
+  if (!text || /sk-|api[_-]?key|bearer\s/i.test(text)) return "";
+  return text.slice(0, 40);
+}
+
+function scorerLabel(scorer: ScoreMode, note?: string): string {
+  const reason = scorerNoteText(note);
+  if (scorer === "agent") return reason ? `解读用 Agent（${reason}）` : "解读用 Agent";
+  if (scorer === "fallback") return reason ? `模型未返回（${reason}），未写入政策` : "模型未返回，未写入政策";
   return "未配置模型，未写入政策";
 }
 
@@ -123,7 +133,7 @@ export function formatScanSourceMessage(region: string, name: string, tally: Sca
     `硬件排除 ${tally.droppedHardware}`,
     `预算未采 ${tally.budgetSkipped}`,
     tally.duplicate ? `已有 ${tally.duplicate}` : "",
-    tally.collected > 0 || tally.scored > 0 ? scorerLabel(tally.scorer) : "",
+    tally.collected > 0 || tally.scored > 0 ? scorerLabel(tally.scorer, tally.scorerNote) : "",
   ].filter(Boolean);
   return `${head}。${tail.join("，")}。`;
 }

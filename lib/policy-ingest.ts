@@ -96,6 +96,7 @@ export async function ingestPolicyList(input: {
     })),
   );
   tally.scorer = resolveMode(batch);
+  if (batch.note) tally.scorerNote = batch.note;
   if (tally.scorer !== "agent") return tally;
 
   for (const item of stored) {

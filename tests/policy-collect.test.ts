@@ -72,4 +72,50 @@ test("执行记录写出四步计数，不再写未映射", () => {
   const skipped = formatScanSourceMessage("银川", "门户", { ...tally, scored: 0, filtered: 0, interpreted: 0, scorer: "local" });
   assert.match(skipped, /未配置模型，未写入政策/);
   assert.doesNotMatch(skipped, /按本地规则评分/);
+  const silent = formatScanSourceMessage("西安", "高新区门户", {
+    ...tally,
+    collected: 8,
+    scored: 0,
+    filtered: 0,
+    interpreted: 0,
+    listCount: 30,
+    bodyReads: 8,
+    droppedOld: 0,
+    droppedHardware: 0,
+    budgetSkipped: 22,
+    scorer: "fallback",
+  });
+  assert.match(silent, /模型未返回，未写入政策/);
+  const failed = formatScanSourceMessage("西安", "高新区门户", { ...silentInput(tally), scorerNote: "接口返回 400" });
+  assert.match(failed, /采集 8，评了 0，低分过滤 0，解读写入 0/);
+  assert.match(failed, /模型未返回（接口返回 400），未写入政策/);
+  const leaked = formatScanSourceMessage("西安", "高新区门户", { ...silentInput(tally), scorerNote: "sk-live-secret 接口返回 401" });
+  assert.match(leaked, /模型未返回，未写入政策/);
+  assert.doesNotMatch(leaked, /sk-/);
+  const partial = formatScanSourceMessage("西安", "高新区门户", {
+    ...tally,
+    collected: 8,
+    scored: 6,
+    filtered: 2,
+    interpreted: 4,
+    scorer: "agent",
+    scorerNote: "未评 2：评估超时",
+  });
+  assert.match(partial, /解读用 Agent（未评 2：评估超时）/);
 });
+
+function silentInput(tally: ScanTally): ScanTally {
+  return {
+    ...tally,
+    collected: 8,
+    scored: 0,
+    filtered: 0,
+    interpreted: 0,
+    listCount: 30,
+    bodyReads: 8,
+    droppedOld: 0,
+    droppedHardware: 0,
+    budgetSkipped: 22,
+    scorer: "fallback",
+  };
+}

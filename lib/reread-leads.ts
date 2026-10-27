@@ -67,8 +67,13 @@ export async function rereadLeads(
   const batch = await assessCandidatesWithAgent(
     ready.map((item) => ({ url: item.url, title: item.title, body: item.body, region: "", sourceName: "" })),
   );
-  if (batch.mode !== "agent") {
-    const message = batch.mode === "fallback" ? "模型未返回，未重写。" : "未配置模型，未重写。";
+  if (batch.mode !== "agent" || batch.byUrl.size === 0) {
+    const message =
+      batch.mode === "local"
+        ? "未配置模型，未重写。"
+        : batch.note
+          ? `模型未返回（${batch.note}），未重写。`
+          : "模型未返回，未重写。";
     return { updated: 0, removed: 0, checked: selected.results.length, notes: [message], message };
   }
   let updated = 0;
