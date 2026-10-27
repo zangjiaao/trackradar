@@ -1,8 +1,7 @@
 "use client";
 
-import { Chat, useChat } from "@ai-sdk/react";
-import type { UIMessage } from "ai";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useChat } from "@ai-sdk/react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import {
@@ -16,11 +15,13 @@ import {
 } from "@astryxdesign/core/Chat";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
+import { VStack } from "@astryxdesign/core/VStack";
+import { ChatSessionBar } from "@/components/chat-session-bar";
+import { ensureChatSessions, getChatSnapshot, getServerChatSnapshot, setChatDraft, subscribeChatSessions } from "@/components/chat-session";
 import { FORMAT_SAMPLE, MessageMarkdown } from "@/components/message-markdown";
-import { getBrowserChat, getChatDraft, getServerChatDraft, restoreBrowserChat, setChatDraft, subscribeChatDraft } from "@/components/chat-session";
 
 const SUGGESTIONS = [
-  "到已启用信源回看大约一年：先采集正文和 PDF 附件。有模型时按政府在用、在采的产品写一段解读，方便定 demo；无关的不进政策页，并保留每条原始链接。",
+  "结合已经入库的政策，提一个工作室现在能拿去给客户看的小 demo：贴着政策里的产品方向，并说说界面上怎么体现。",
   "对照已有政策和案例，说说我们现在做什么有助于发展。",
   "我在猪八戒看到一条知识库需求，请写入案例。标题是企业知识库 RAG 搭建，链接 https://example.com/kb-zbj ，站点猪八戒，地域杭州，笔记是有人求购、预算面议。",
 ];
@@ -35,20 +36,15 @@ function toolStatus(state?: string): ChatToolCallStatus {
 }
 
 export function ChatPanel() {
-  // 离开页面会卸载这里。Chat 实例留在模块里，同一标签页切回来仍是这一通，流式请求也不会被中止。
-  const chat = useMemo(
-    () => (typeof window === "undefined" ? new Chat<UIMessage>({ id: "trackradar-ssr", messages: [] }) : getBrowserChat()),
-    [],
-  );
-  const { messages, sendMessage, status, error, stop } = useChat({ chat });
-  const draft = useSyncExternalStore(subscribeChatDraft, getChatDraft, getServerChatDraft);
-  const [restored, setRestored] = useState(messages.length > 0);
+  // 每个会话一个 Chat，留在模块里。离开页面或切到别的会话时，流式请求不会被中止。
+  const browser = useSyncExternalStore(subscribeChatSessions, getChatSnapshot, getServerChatSnapshot);
+  const { messages, sendMessage, status, error, stop } = useChat({ chat: browser.chat });
+  const draft = browser.draft;
   const [config, setConfig] = useState<Status | null>(null);
 
   useEffect(() => {
-    restoreBrowserChat(chat);
-    setRestored(true);
-  }, [chat]);
+    ensureChatSessions();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,20 +68,24 @@ export function ChatPanel() {
   }, []);
 
   const busy = status === "submitted" || status === "streaming";
-  const blocked = config !== null && !config.configured;
+  const modelBlocked = config !== null && !config.configured;
+  const inputBlocked = !browser.ready || modelBlocked;
   const lastMessage = messages.at(-1);
 
   function submit(text: string) {
     const value = text.trim();
-    if (!value || blocked) return;
+    if (!value || inputBlocked) return;
     setChatDraft("");
     void sendMessage({ text: value });
   }
 
   return (
-    <ChatLayout
+    <VStack gap={2} height="100%" className="chat-screen min-h-0">
+      <ChatSessionBar snapshot={browser} />
+      <ChatLayout
       data-chat-messages=""
       density="compact"
+      className="chat-layout-fill"
       composer={
         <ChatComposer
           data-chat-composer=""
@@ -94,7 +94,7 @@ export function ChatPanel() {
           onSubmit={submit}
           onStop={() => stop()}
           isStopShown={busy}
-          isDisabled={blocked}
+          isDisabled={inputBlocked}
           placeholder="对照政策和案例往下问"
           footerActions={
             <HStack gap={2} wrap="wrap">
@@ -104,7 +104,7 @@ export function ChatPanel() {
                   label={`${suggestion.slice(0, 18)}…`}
                   size="sm"
                   variant="ghost"
-                  isDisabled={busy || blocked}
+                  isDisabled={busy || inputBlocked}
                   onClick={() => submit(suggestion)}
                 />
               ))}
@@ -114,7 +114,7 @@ export function ChatPanel() {
       }
     >
       <ChatMessageList align={messages.length === 0 ? "top" : "bottom"} isStreaming={status === "streaming"} gap={3}>
-        {blocked ? (
+        {modelBlocked ? (
           <Banner
             status="error"
             title="还没有模型密钥"
@@ -127,7 +127,7 @@ export function ChatPanel() {
           </Text>
         )}
         {messages.length === 0 ? (
-          restored ? (
+          browser.ready ? (
           <ChatMessage sender="assistant" name="排版示例">
             <ChatMessageBubble variant="ghost" width="100%">
               <MessageMarkdown text={FORMAT_SAMPLE} streaming={false} />
@@ -172,5 +172,6 @@ export function ChatPanel() {
         ) : null}
       </ChatMessageList>
     </ChatLayout>
+    </VStack>
   );
 }

@@ -17,6 +17,21 @@
   min-width: 0;
 }
 
+.chat-screen {
+  min-height: 0;
+}
+
+.chat-session-select {
+  width: min(100%, 22rem);
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
+.chat-layout-fill {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .track-select {
   width: min(100%, 36rem);
   min-width: 0;
