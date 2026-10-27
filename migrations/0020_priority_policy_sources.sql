@@ -1,6 +1,9 @@
 -- 按 OPC 密度补政策列表信源。已有同等 URL 的不重复插入，并保持启用。
+-- 文件名是 0020：0019 已用于对话会话（0019_chat_sessions.sql）。
 -- 归一化：去掉协议、www、末尾斜杠和 /index.html，便于识别 http/https 与 index 等价页。
 -- D1 的 compound SELECT 上限很低，每条信源单独 INSERT，不用 UNION ALL。
+-- 若本地曾经应用过旧文件名 0019_priority_policy_sources.sql，wrangler 不会重放那个名字；
+-- 下面的 INSERT 有 WHERE NOT EXISTS，末尾 UPDATE 会把备注和成都停用再写一遍。
 
 UPDATE sources
 SET enabled = 1
