@@ -18,7 +18,8 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { ChatSessionBar } from "@/components/chat-session-bar";
 import { ensureChatSessions, getChatSnapshot, getServerChatSnapshot, setChatDraft, subscribeChatSessions } from "@/components/chat-session";
-import { FORMAT_SAMPLE, MessageMarkdown } from "@/components/message-markdown";
+import { MessageMarkdown } from "@/components/message-markdown";
+import { messageMarkdownSource } from "@/lib/chat-memory";
 
 const SUGGESTIONS = [
   "结合已经入库的政策，提一个工作室现在能拿去给客户看的小 demo：贴着政策里的产品方向，并说说界面上怎么体现。",
@@ -27,6 +28,29 @@ const SUGGESTIONS = [
 ];
 
 type Status = { configured: boolean; model: string; baseURL: boolean };
+
+function CopyMessageButton({ text }: { text: string }) {
+  const [phase, setPhase] = useState<"idle" | "copied" | "failed">("idle");
+
+  useEffect(() => {
+    if (phase === "idle") return;
+    const timer = window.setTimeout(() => setPhase("idle"), 1600);
+    return () => window.clearTimeout(timer);
+  }, [phase]);
+
+  async function copy() {
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("clipboard");
+      await navigator.clipboard.writeText(text);
+      setPhase("copied");
+    } catch {
+      setPhase("failed");
+    }
+  }
+
+  const label = phase === "copied" ? "已复制" : phase === "failed" ? "复制失败" : "复制";
+  return <Button label={label} size="sm" variant="ghost" onClick={() => void copy()} />;
+}
 
 function toolStatus(state?: string): ChatToolCallStatus {
   if (state === "output-available" || state === "result") return "complete";
@@ -126,45 +150,35 @@ export function ChatPanel() {
             {config?.baseURL ? " · 使用自定义 Base URL" : ""}。回答会带上配置、最近政策和最近案例。也可以让助手把一条市场素材写入案例。
           </Text>
         )}
-        {messages.length === 0 ? (
-          browser.ready ? (
-          <ChatMessage sender="assistant" name="排版示例">
-            <ChatMessageBubble variant="ghost" width="100%">
-              <MessageMarkdown text={FORMAT_SAMPLE} streaming={false} />
-            </ChatMessageBubble>
-            <Text type="supporting" as="p">
-              从下面的问题开始，或自己写一句。助手会把结论限制在 T01–T10。
-            </Text>
-          </ChatMessage>
-          ) : null
-        ) : (
-          messages.map((message) => {
-            const sender = message.role === "user" ? "user" : "assistant";
-            const tools = message.parts.flatMap((part) => {
-              if (!part.type.startsWith("tool-")) return [];
-              const toolPart = part as { type: string; state?: string };
-              return [{ name: part.type.slice("tool-".length), status: toolStatus(toolPart.state) }];
-            });
-            return (
-              <ChatMessage key={message.id} sender={sender} name={sender === "user" ? "你" : "助手"}>
-                {message.parts.map((part, index) => {
-                  if (part.type !== "text") return null;
-                  const streaming =
-                    status === "streaming" &&
-                    message.id === lastMessage?.id &&
-                    sender === "assistant" &&
-                    index === message.parts.length - 1;
-                  return (
-                    <ChatMessageBubble key={`${message.id}-${index}`} variant={sender === "assistant" ? "ghost" : "filled"} width="100%">
-                      <MessageMarkdown text={part.text ?? ""} streaming={streaming} />
-                    </ChatMessageBubble>
-                  );
-                })}
-                {tools.length > 0 ? <ChatToolCalls calls={tools} /> : null}
-              </ChatMessage>
-            );
-          })
-        )}
+        {messages.map((message) => {
+          const sender = message.role === "user" ? "user" : "assistant";
+          const source = messageMarkdownSource(message);
+          const live = status === "streaming" && sender === "assistant" && message.id === lastMessage?.id;
+          const tools = message.parts.flatMap((part) => {
+            if (!part.type.startsWith("tool-")) return [];
+            const toolPart = part as { type: string; state?: string };
+            return [{ name: part.type.slice("tool-".length), status: toolStatus(toolPart.state) }];
+          });
+          return (
+            <ChatMessage
+              key={message.id}
+              sender={sender}
+              name={sender === "user" ? "你" : "助手"}
+              metadata={source && !live ? <CopyMessageButton text={source} /> : null}
+            >
+              {message.parts.map((part, index) => {
+                if (part.type !== "text") return null;
+                const streaming = live && index === message.parts.length - 1;
+                return (
+                  <ChatMessageBubble key={`${message.id}-${index}`} variant={sender === "assistant" ? "ghost" : "filled"} width="100%">
+                    <MessageMarkdown text={part.text ?? ""} streaming={streaming} />
+                  </ChatMessageBubble>
+                );
+              })}
+              {tools.length > 0 ? <ChatToolCalls calls={tools} /> : null}
+            </ChatMessage>
+          );
+        })}
         {error ? (
           <Text type="supporting" as="p">
             {error.message}

@@ -87,26 +87,3 @@ export function MessageMarkdown({ text, streaming }: { text: string; streaming: 
     </Streamdown>
   );
 }
-
-export const FORMAT_SAMPLE = [
-  "## 回复会按 Markdown 排版",
-  "",
-  "助手和你的消息都会解析这些结构，未写完的标记在流式输出时按当前内容显示。",
-  "",
-  "- 标题、列表和引用",
-  "- `行内代码` 与代码块",
-  "- 链接只保留 http、https、mailto",
-  "",
-  "> 原始 HTML 不会执行。",
-  "",
-  "| 赛道 | 切口 |",
-  "| --- | --- |",
-  "| T06 | 把一份通知拆成可检索条目 |",
-  "| T10 | 对照入库条件整理材料清单 |",
-  "",
-  "```text",
-  "demo：通知标题、适用范围、截止日期",
-  "```",
-  "",
-  "政策原文见 [上海市经信委](https://www.sheitc.sh.gov.cn/)。",
-].join("\n");

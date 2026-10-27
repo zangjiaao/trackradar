@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
-import { FORMAT_SAMPLE, MessageMarkdown } from "../components/message-markdown";
+import { MessageMarkdown } from "../components/message-markdown";
 import { isSafeHref } from "../lib/safe-href";
 
 test("链接只允许 http、https、mailto 和站内相对地址", () => {
@@ -61,11 +61,15 @@ test("消息 Markdown 渲染结构且不执行 HTML", () => {
   assert.equal(html.includes("tracker.example"), false);
 });
 
-test("排版示例包含标题、表格、代码和安全链接", () => {
-  const html = renderToStaticMarkup(createElement(MessageMarkdown, { streaming: false, text: FORMAT_SAMPLE }));
+test("表格、标题和安全链接能渲染", () => {
+  const html = renderToStaticMarkup(
+    createElement(MessageMarkdown, {
+      streaming: false,
+      text: ["## 回复会按 Markdown 排版", "", "| 赛道 | 切口 |", "| --- | --- |", "| T06 | 通知 |", "", "政策原文见 [上海市经信委](https://www.sheitc.sh.gov.cn/)。"].join("\n"),
+    }),
+  );
   assert.match(html, /<h2[\s>]/);
   assert.match(html, /<table[\s>]/);
-  assert.match(html, /<pre[\s>]/);
   assert.match(html, /href="https:\/\/www.sheitc.sh.gov.cn\/"/);
   assert.match(html, /rel="noreferrer noopener"/);
 });

@@ -4,6 +4,7 @@ import {
   NEW_CHAT_TITLE,
   assertSessionId,
   formatSessionStamp,
+  messageMarkdownSource,
   parseStoredMessages,
   pickSessionAfterDelete,
   prepareSessionDraft,
@@ -23,6 +24,20 @@ test("会话存储只接受带 id、role、parts 的消息", () => {
   assert.equal(messages.length, 2);
   assert.equal(messages[0]?.id, "1");
   assert.equal(messages[1]?.role, "assistant");
+});
+
+test("复制用的是文本 part 的 Markdown 原文", () => {
+  const source = messageMarkdownSource({
+    parts: [
+      { type: "text", text: "看看 **加粗** 和 [链接](https://example.com/a)" },
+      { type: "tool-list_leads", state: "output-available" },
+      { type: "text", text: "" },
+      { type: "text", text: "第二段 `code`" },
+    ],
+  });
+  assert.equal(source, "看看 **加粗** 和 [链接](https://example.com/a)\n\n第二段 `code`");
+  assert.equal(messageMarkdownSource({ parts: [] }), "");
+  assert.equal(messageMarkdownSource({}), "");
 });
 
 test("损坏的会话存储当成空对话", () => {

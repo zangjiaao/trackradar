@@ -72,18 +72,23 @@ export function prepareSessionDraft(input: unknown): string {
   return input;
 }
 
+function textParts(message: { parts?: unknown }): string[] {
+  if (!Array.isArray(message.parts)) return [];
+  return message.parts.flatMap((part) => {
+    if (!part || typeof part !== "object") return [];
+    const candidate = part as { type?: unknown; text?: unknown };
+    return candidate.type === "text" && typeof candidate.text === "string" ? [candidate.text] : [];
+  });
+}
+
 function messageText(message: { parts?: unknown }): string {
-  if (!Array.isArray(message.parts)) return "";
-  return message.parts
-    .filter((part): part is { type: string; text: string } => {
-      if (!part || typeof part !== "object") return false;
-      const candidate = part as { type?: unknown; text?: unknown };
-      return candidate.type === "text" && typeof candidate.text === "string";
-    })
-    .map((part) => part.text)
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return textParts(message).join(" ").replace(/\s+/g, " ").trim();
+}
+
+export function messageMarkdownSource(message: { parts?: unknown }): string {
+  return textParts(message)
+    .filter((text) => text.length > 0)
+    .join("\n\n");
 }
 
 export function truncateTitle(text: string): string {
