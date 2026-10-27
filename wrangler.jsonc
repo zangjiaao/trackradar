@@ -20,7 +20,7 @@
     {
       "binding": "DB",
       "database_name": "trackradar",
-      "database_id": "b7e1c2a0-4f3d-4a1e-9c8b-000000000001",
+      "database_id": "6182ca4e-c99a-4199-950c-182196af05b6",
       "migrations_dir": "migrations"
     }
   ],
