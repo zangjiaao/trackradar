@@ -14,7 +14,7 @@ WHERE id IN ('src_sh_cyfz', 'src_bj_tzgg', 'src_sz_tzgg', 'src_xa_tzgg')
       );
 
 INSERT INTO sources (id, region, name, list_url, adapter, enabled, notes)
-SELECT 'src_hz_jxj', '杭州', '市经信局 · 通知文件', 'https://jxj.hangzhou.gov.cn/col/col1229252271/index.html', 'generic_list', 1, '通知文件栏目。列表由脚本注入，通用适配器可能只抽到导航。'
+SELECT 'src_hz_jxj', '杭州', '市经信局 · 通知文件', 'https://jxj.hangzhou.gov.cn/col/col1229252271/index.html', 'generic_list', 1, '通知文件栏目。静态页可能没有条目，抓取会读页面里的 jpaas 列表接口。'
 WHERE NOT EXISTS (
   SELECT 1 FROM sources
   WHERE id = 'src_hz_jxj'
@@ -50,7 +50,7 @@ WHERE NOT EXISTS (
 );
 
 INSERT INTO sources (id, region, name, list_url, adapter, enabled, notes)
-SELECT 'src_cd_zwxx', '成都', '市经信局 · 政务信息', 'https://cdjx.chengdu.gov.cn/cdsjxw/c132860/zwxx.shtml', 'generic_list', 1, 'OPC 密度优先。政务信息列表。站点可能返回 412 WAF，仍收录该 URL。'
+SELECT 'src_cd_zwxx', '成都', '市经信局 · 政务信息', 'https://cdjx.chengdu.gov.cn/cdsjxw/c132860/zwxx.shtml', 'generic_list', 0, '政务信息列表返回 HTTP 412，正文是瑞数 WAF 脚本，当前请求拿不到通知。先停用。'
 WHERE NOT EXISTS (
   SELECT 1 FROM sources
   WHERE id = 'src_cd_zwxx'
@@ -59,7 +59,7 @@ WHERE NOT EXISTS (
 );
 
 INSERT INTO sources (id, region, name, list_url, adapter, enabled, notes)
-SELECT 'src_nb_dsjj', '宁波', '市数据局 · 通知公告', 'https://dsjj.ningbo.gov.cn/col/col1229578992/index.html', 'generic_list', 1, 'OPC 密度优先。算力券细则与供给方公示的栏目（col1229578992）。旧栏目 col1229050879 重复发文，不另收。'
+SELECT 'src_nb_dsjj', '宁波', '市数据局 · 通知公告', 'https://dsjj.ningbo.gov.cn/col/col1229578992/index.html', 'generic_list', 1, 'OPC 密度优先。栏目页本身多半只有导航，通知列表由页面里的 jpaas 列表接口补齐（col1229578992）。旧栏目 col1229050879 重复发文，不另收。'
 WHERE NOT EXISTS (
   SELECT 1 FROM sources
   WHERE id = 'src_nb_dsjj'
@@ -68,7 +68,7 @@ WHERE NOT EXISTS (
 );
 
 INSERT INTO sources (id, region, name, list_url, adapter, enabled, notes)
-SELECT 'src_nb_jxj', '宁波', '市经信局 · 通知公告', 'http://jxj.ningbo.gov.cn/col/col1229561613/index.html', 'generic_list', 1, 'OPC 密度优先。制造业与软件申报栏目 col1229561613。人工智能 OPC 社区申报未核到本站单篇，故收栏目。'
+SELECT 'src_nb_jxj', '宁波', '市经信局 · 通知公告', 'http://jxj.ningbo.gov.cn/col/col1229561613/index.html', 'generic_list', 1, 'OPC 密度优先。栏目 col1229561613 的列表由 jpaas 接口补齐。人工智能 OPC 社区申报未核到单篇，故收栏目。'
 WHERE NOT EXISTS (
   SELECT 1 FROM sources
   WHERE id = 'src_nb_jxj'
@@ -102,3 +102,22 @@ SET system_prompt = replace(
     ),
     updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
 WHERE instr(system_prompt, '政策地域：宁夏、杭州、深圳、西安、北京、上海。') > 0;
+
+UPDATE sources
+SET enabled = 0,
+    notes = '政务信息列表返回 HTTP 412，正文是瑞数 WAF 脚本，当前请求拿不到通知。先停用。'
+WHERE id = 'src_cd_zwxx'
+   OR lower(replace(replace(replace(replace(rtrim(list_url, '/'), 'https://', ''), 'http://', ''), 'www.', ''), '/index.html', ''))
+      = 'cdjx.chengdu.gov.cn/cdsjxw/c132860/zwxx.shtml';
+
+UPDATE sources
+SET notes = '通知文件栏目。静态页可能没有条目，抓取会读页面里的 jpaas 列表接口。'
+WHERE id = 'src_hz_jxj';
+
+UPDATE sources
+SET notes = 'OPC 密度优先。栏目页本身多半只有导航，通知列表由页面里的 jpaas 列表接口补齐（col1229578992）。旧栏目 col1229050879 重复发文，不另收。'
+WHERE id = 'src_nb_dsjj';
+
+UPDATE sources
+SET notes = 'OPC 密度优先。栏目 col1229561613 的列表由 jpaas 接口补齐。人工智能 OPC 社区申报未核到单篇，故收栏目。'
+WHERE id = 'src_nb_jxj';
