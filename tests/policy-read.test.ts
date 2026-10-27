@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ASSESS_INSTRUCTIONS } from "../lib/policy-assess.ts";
 import { readPolicy } from "../lib/policy-read.ts";
-import { PROMPT_V1, TOOL_ADDENDUM } from "../lib/prompt.ts";
+import { PROMPT_V1, STUDIO_ADVICE, TOOL_ADDENDUM } from "../lib/prompt.ts";
 
 test("服务商资源池会写出相关片段和机会", () => {
   const reading = readPolicy("关于征集人工智能应用服务商资源池的通知");
@@ -58,4 +58,14 @@ test("默认提示词要求解读政策并过滤过宽口径", () => {
   assert.match(TOOL_ADDENDUM, /卡片只显示一段解读/);
   assert.match(TOOL_ADDENDUM, /研发单位/);
   assert.match(TOOL_ADDENDUM, /纯视觉安防降为背景/);
+  assert.match(STUDIO_ADVICE, /立刻再调 list_leads/);
+  assert.match(PROMPT_V1, /立刻再调 list_leads/);
+  assert.match(PROMPT_V1, /不要问选哪一种/);
+  assert.match(PROMPT_V1, /kind 为 case/);
+  assert.match(PROMPT_V1, /再扫一遍/);
+  assert.match(TOOL_ADDENDUM, /立刻再调 list_leads/);
+  assert.match(TOOL_ADDENDUM, /本轮对话里更早的 list_leads/);
+  assert.match(TOOL_ADDENDUM, /不用先问要不要跑/);
+  assert.match(TOOL_ADDENDUM, /已经在页面上加过案例/);
+  assert.match(TOOL_ADDENDUM, /不要停下来问要不要扫描/);
 });
