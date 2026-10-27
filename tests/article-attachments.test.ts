@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { assessmentInputText, excerptAttachmentText, listPdfAttachments, storedNoticeBody } from "../lib/article-attachments.ts";
+import {
+  assessmentInputText,
+  catalogEntryDigest,
+  excerptAttachmentText,
+  listPdfAttachments,
+  storedLeadSummary,
+  storedNoticeBody,
+} from "../lib/article-attachments.ts";
 import { fetchPolicyArticle } from "../lib/fetch-article.ts";
 
 const catalogHtml = readFileSync(new URL("./fixtures/xa-catalog-notice.html", import.meta.url), "utf8");
@@ -81,6 +88,52 @@ test("验收公示的名单 PDF 没有关键词时仍进入评估输入", async 
   const input = assessmentInputText(storedNoticeBody("关于公布数字化转型试点第二批通过验收企业的公示", article.text));
   assert.match(input, /西安星河软件科技有限公司/);
   assert.match(input, /西安秦岭数据技术有限公司/);
+});
+
+test("目录序号表按整行保留对口产品，服务器和周界安防不占主体", () => {
+  const table = [
+    "11",
+    "普通机床",
+    "某机械公司",
+    "车床加工。",
+    "12",
+    "多模态大模型生产工艺",
+    "知识图谱",
+    "西安星图软件有限公司",
+    "面向生产工艺的知识检索与问答。",
+    "先进制造。按需报价。",
+    "13",
+    "周界防护多",
+    "维感知系统",
+    "慧铁科技股份有限公司",
+    "铁路周界安防。",
+    "14",
+    "环境安全监",
+    "测智能体",
+    "西安云阶智元信息科技有限公司",
+    "道路与校园安全监测。",
+    "15",
+    "智能计算服",
+    "务器",
+    "西安奇维科技有限公司",
+    "国产芯片算力服务器。",
+  ].join("\n");
+  const excerpt = excerptAttachmentText(`${"页眉".repeat(80)}\n${table}\n${"页脚".repeat(80)}`, 110);
+  assert.match(excerpt, /知识图谱/);
+  assert.match(excerpt, /西安星图软件有限公司/);
+  assert.match(excerpt, /知识检索/);
+  assert.match(excerpt, /环境安全监测智能体/);
+  assert.match(excerpt, /西安云阶智元信息科技有限公司/);
+  assert.doesNotMatch(excerpt, /周界防护/);
+  assert.doesNotMatch(excerpt, /奇维科技/);
+  const stored = storedNoticeBody("目录", `概述发布了 168 项。\n\n【附件摘录】\n${excerpt}`);
+  const digest = catalogEntryDigest(stored);
+  assert.match(digest, /西安星图软件有限公司/);
+  assert.match(digest, /西安云阶智元信息科技有限公司/);
+  assert.equal(
+    storedLeadSummary("发布了 168 项目录。", stored).includes("西安星图软件有限公司"),
+    true,
+  );
 });
 
 test("超长附件优先保留人工智能和知识库片段，名单则保留开头", () => {

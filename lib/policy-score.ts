@@ -15,7 +15,7 @@ const assessmentSchema = z.object({
       reading: z
         .string()
         .describe(
-          "一段中文，给政策卡片。目录以附件产品条目为主体，点出对得上的政府侧产品和场景，便于定 demo。验收公示写政府在推什么、谁在做。不要写成奖补摘要。",
+          "一段中文，给政策卡片。目录要点出两三条代表性条目的名称、研发单位和场景，不要只写发布了多少项。服务器和纯视觉安防一句带过。验收公示写政府在推什么、谁在做。不要写成奖补摘要。",
         ),
       subsidy: z.string().describe("正文写明的奖补，没有则空字符串。不要写进 reading。"),
       participation: z.string().describe("正文写明的参与路径，没有则空字符串。留给对话。"),

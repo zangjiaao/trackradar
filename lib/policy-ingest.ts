@@ -1,4 +1,4 @@
-import { NOTICE_BODY_LIMIT, storedNoticeBody } from "@/lib/article-attachments";
+import { NOTICE_BODY_LIMIT, storedLeadSummary, storedNoticeBody } from "@/lib/article-attachments";
 import { fetchPolicyArticle } from "@/lib/fetch-article";
 import { deferHardwareExclusion, exclusionNote, matchTrackWords, textForTrackMatch, type TrackDictionary } from "@/lib/guess";
 import { sortTrackCodes, writeLeadTracks } from "@/lib/lead-tracks";
@@ -242,6 +242,7 @@ async function saveInterpretedLead(
 ): Promise<string> {
   const text = item.body ? `${item.title}\n${item.body}` : item.title;
   const reading = assessment.reading.replace(/\s+/g, " ").trim().slice(0, 500);
+  const summary = storedLeadSummary(reading, item.body);
   const tracks = sortTrackCodes(matchTrackWords(textForTrackMatch(text), dictionaries).map((match) => match.code));
   const primary = tracks[0] ?? null;
   const scores = skeletonScores(item.title, primary);
@@ -257,7 +258,7 @@ async function saveInterpretedLead(
          WHERE id = ?`,
       )
       .bind(
-        reading,
+        summary,
         reading,
         reading,
         optionalFact(assessment.subsidy),
@@ -287,7 +288,7 @@ async function saveInterpretedLead(
       primary,
       item.title,
       item.url,
-      reading,
+      summary,
       null,
       reading,
       source.region,

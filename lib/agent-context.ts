@@ -24,7 +24,7 @@ export async function buildRuntimeContext(): Promise<string> {
           .map((task) => `${task.enabled ? "启用" : "停用"}｜${task.name}｜${cadenceLabel(task.cadence)}｜回看 ${task.lookback_days} 天`)
           .join("；")}。到点会按启用信源回看并写入政策。`
       : "定时任务：还没有。用户可以在任务页添加每天或每周一的回看。",
-    "确定方向和 demo 时，用下面留下的政策和案例，也可以用 list_leads 再检索。政策看相关性分、机会、福利、参与、门槛和联络人；案例看价格信号和能力关系。低分过滤的候选不在这里。",
+    "确定方向和 demo 时，用下面留下的政策和案例，也可以用 list_leads 再检索。政策看相关性分、机会、目录条目、福利、参与、门槛和联络人；案例看价格信号和能力关系。低分过滤的候选不在这里。",
     `常用找素材站点：${materialSites} 这些条目由人工录入到案例，用来和市场对照。`,
     enabled.length
       ? `启用信源：${enabled.map((source) => `${source.region}·${source.name}`).join("、")}。`

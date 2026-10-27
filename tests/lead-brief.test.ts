@@ -69,6 +69,22 @@ test("政策简报带相关性分和解读字段", () => {
   assert.match(line, /门槛 西安制造业中小企业/);
   assert.match(line, /联络人 王阳 029-67098976/);
   assert.match(line, /https:\/\/gxj\.xa\.gov\.cn\/example/);
+  assert.equal(brief.entries, null);
+});
+
+test("目录明细进对话摘要，不替代卡片上的一段解读", () => {
+  const row = lead({
+    kind: "policy",
+    title: "2026年新产品新技术目录清单",
+    url: "https://gxj.xa.gov.cn/catalog",
+    studio_angle: "目录里有生产工艺知识图谱和环境安全监测智能体，可对知识库和智能体定 demo。",
+    summary: "12 知识图谱 西安星图软件有限公司 面向生产工艺的知识检索。14 环境安全监测智能体 西安云阶智元信息科技有限公司 道路与校园安全监测。",
+  });
+  const brief = leadBrief(row);
+  assert.match(brief.opportunity ?? "", /知识图谱/);
+  assert.match(brief.entries ?? "", /西安星图软件有限公司/);
+  assert.match(brief.entries ?? "", /西安云阶智元信息科技有限公司/);
+  assert.match(leadBriefLine(row), /条目 12 知识图谱/);
 });
 
 test("案例简报带信号和能力关系，不套申报字段", () => {

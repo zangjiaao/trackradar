@@ -46,6 +46,9 @@ test("默认提示词要求解读政策并过滤过宽口径", () => {
   assert.match(PROMPT_V1, /产品条目为情报主体/);
   assert.match(PROMPT_V1, /政府侧产品/);
   assert.match(PROMPT_V1, /不要只按奖补通知选题/);
+  assert.match(PROMPT_V1, /代表性条目/);
+  assert.match(PROMPT_V1, /不要只写发布了多少项/);
+  assert.match(PROMPT_V1, /研发单位/);
   assert.match(ASSESS_INSTRUCTIONS, /顺口/);
   assert.match(ASSESS_INSTRUCTIONS, /reading 留空/);
   assert.match(TOOL_ADDENDUM, /采集、评了、低分过滤、解读写入/);
@@ -53,4 +56,6 @@ test("默认提示词要求解读政策并过滤过宽口径", () => {
   assert.match(TOOL_ADDENDUM, /PDF 附件会抽进正文/);
   assert.match(TOOL_ADDENDUM, /产品条目为情报主体/);
   assert.match(TOOL_ADDENDUM, /卡片只显示一段解读/);
+  assert.match(TOOL_ADDENDUM, /研发单位/);
+  assert.match(TOOL_ADDENDUM, /纯视觉安防降为背景/);
 });

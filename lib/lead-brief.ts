@@ -14,6 +14,7 @@ export type LeadBrief = {
   participation: string | null;
   threshold: string | null;
   contact: string | null;
+  entries: string | null;
   signal: string | null;
   seen: string | null;
   fit: string | null;
@@ -34,6 +35,7 @@ export function leadBrief(lead: LeadRow): LeadBrief {
   const kind = lead.kind === "case" ? "case" : "policy";
   const tracks = lead.track_codes.length ? lead.track_codes.join("、") : text(lead.track_code);
   const opportunity = text(lead.studio_angle) || text(lead.opportunity_note);
+  const summary = text(lead.summary);
   return {
     kind,
     title: lead.title,
@@ -48,6 +50,7 @@ export function leadBrief(lead: LeadRow): LeadBrief {
     participation: kind === "policy" ? text(lead.participation_note) : null,
     threshold: kind === "policy" ? text(lead.who_can_apply) : null,
     contact: kind === "policy" ? text(lead.contact_note) : null,
+    entries: kind === "policy" && summary && summary !== opportunity ? summary : null,
     signal: kind === "case" ? text(lead.signal) : null,
     seen: kind === "case" ? text(lead.summary) || text(lead.relevant_excerpt) : null,
     fit: kind === "case" ? text(lead.opportunity_note) || text(lead.studio_angle) : null,
@@ -70,6 +73,7 @@ export function leadBriefLine(lead: LeadRow): string {
     brief.participation ? `参与 ${brief.participation}` : null,
     brief.threshold ? `门槛 ${brief.threshold}` : null,
     brief.contact ? `联络人 ${brief.contact}` : null,
+    brief.entries ? `条目 ${brief.entries}` : null,
     brief.signal ? `信号 ${brief.signal}` : null,
     brief.seen ? `内容 ${brief.seen}` : null,
     brief.fit ? `关系 ${brief.fit}` : null,

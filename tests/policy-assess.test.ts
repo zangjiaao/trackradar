@@ -48,6 +48,9 @@ test("评估提示要求低相关新闻留空解读", () => {
   assert.match(ASSESS_INSTRUCTIONS, /政府侧产品/);
   assert.match(ASSESS_INSTRUCTIONS, /政府在推什么、谁在做/);
   assert.match(ASSESS_INSTRUCTIONS, /不要写成奖补摘要/);
+  assert.match(ASSESS_INSTRUCTIONS, /研发单位/);
+  assert.match(ASSESS_INSTRUCTIONS, /不要只写「发布了多少项」/);
+  assert.match(ASSESS_INSTRUCTIONS, /纯视觉安防/);
 });
 
 test("目录产品条目写成的一段解读可以入库", () => {

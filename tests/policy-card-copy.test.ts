@@ -32,6 +32,15 @@ test("卡片只显示一段工作室解读，不拼福利、参与、门槛和�
     }),
   );
   assert.equal(reading, "帮西安制造业中小企业做第五批数改里的软件开发，并协助准备奖补申报。");
+  const catalog = policyCardReading(
+    lead({
+      studio_angle: "目录里有生产工艺知识图谱和环境安全监测智能体，可对知识库和智能体定 demo。",
+      summary: "12 知识图谱 西安星图软件有限公司 面向生产工艺的知识检索。14 环境安全监测智能体 西安云阶智元信息科技有限公司 道路与校园安全监测。按需报价。",
+      subsidy_note: "没有奖补。",
+    }),
+  );
+  assert.equal(catalog, "目录里有生产工艺知识图谱和环境安全监测智能体，可对知识库和智能体定 demo。");
+  assert.doesNotMatch(catalog ?? "", /西安星图软件有限公司/);
 });
 
 test("本地套话不进卡片", () => {

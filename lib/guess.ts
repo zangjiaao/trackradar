@@ -62,7 +62,7 @@ export function exclusionNote(text: string): string | null {
  * 这种正文不再在模型判断之后整篇硬丢掉。标题里的排除词仍在采集前生效。
  */
 export function deferHardwareExclusion(text: string): boolean {
-  return /知识库|智能体|数字员工|RAG/i.test(text);
+  return /知识库|知识图谱|智能体|数字员工|RAG/i.test(text);
 }
 
 /** 给赛道匹配用。混有硬件类别、但又写明知识库或智能体时，去掉排除词再匹配。 */

@@ -1,4 +1,4 @@
-import { NOTICE_BODY_LIMIT, storedNoticeBody } from "@/lib/article-attachments";
+import { NOTICE_BODY_LIMIT, storedLeadSummary, storedNoticeBody } from "@/lib/article-attachments";
 import { fetchPolicyArticle } from "@/lib/fetch-article";
 import { acceptPolicyAssessment, isTemplateReading } from "@/lib/policy-assess";
 import { assessCandidatesWithAgent } from "@/lib/policy-score";
@@ -86,6 +86,7 @@ export async function rereadLeads(
       continue;
     }
     const reading = assessment.reading.replace(/\s+/g, " ").trim().slice(0, 500);
+    const summary = storedLeadSummary(reading, item.body);
     await database
       .prepare(
         `UPDATE leads
@@ -94,7 +95,7 @@ export async function rereadLeads(
          WHERE id = ?`,
       )
       .bind(
-        reading,
+        summary,
         reading,
         reading,
         optionalFact(assessment.subsidy),
