@@ -66,6 +66,9 @@ test("默认提示词要求解读政策并过滤过宽口径", () => {
   assert.match(TOOL_ADDENDUM, /只有确实要新爬门户时才调 scan_sources/);
   assert.match(TOOL_ADDENDUM, /别拿会话里更早的工具结果当现状/);
   assert.match(TOOL_ADDENDUM, /没给链接/);
+  assert.match(TOOL_ADDENDUM, /fetch_page_markdown/);
+  assert.match(TOOL_ADDENDUM, /不要凭空编这些字段/);
+  assert.match(TOOL_ADDENDUM, /不要把思考过程写进回复/);
   assert.doesNotMatch(TOOL_ADDENDUM, /立刻再调 list_leads/);
   assert.doesNotMatch(PROMPT_V1, /不要问选哪一种/);
 });

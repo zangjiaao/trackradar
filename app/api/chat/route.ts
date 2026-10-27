@@ -1,9 +1,12 @@
 import { createOpenAI } from "@ai-sdk/openai";
+import { env } from "cloudflare:workers";
 import { convertToModelMessages, stepCountIs, streamText, tool, type UIMessage } from "ai";
 import { z } from "zod";
 import { buildRuntimeContext } from "@/lib/agent-context";
+import { openAiChatReasoningOptions } from "@/lib/chat-reasoning";
 import { leadBrief } from "@/lib/lead-brief";
-import { PROMPT_V1, TOOL_ADDENDUM } from "@/lib/prompt";
+import { fetchPageMarkdown } from "@/lib/fetch-page-markdown";
+import { CHAT_TOOL_STEPS, PROMPT_V1, TOOL_ADDENDUM } from "@/lib/prompt";
 import { getDb } from "@/lib/db";
 import { saveOpportunity } from "@/lib/opportunities";
 import { getActivePrompt, listLeads, listTracks, searchSources } from "@/lib/queries";
@@ -54,12 +57,14 @@ export async function POST(request: Request) {
     apiKey: modelEnv.apiKey,
     baseURL: modelEnv.baseURL,
   });
+  const reasoning = openAiChatReasoningOptions(modelEnv.model, modelEnv.baseURL);
 
   const result = streamText({
     model: provider.chat(modelEnv.model),
     system: `${system}\n\n${TOOL_ADDENDUM}`,
     messages: await convertToModelMessages(body.messages),
-    stopWhen: stepCountIs(5),
+    stopWhen: stepCountIs(CHAT_TOOL_STEPS),
+    providerOptions: reasoning ? { openai: reasoning } : undefined,
     tools: {
       list_tracks: tool({
         description: "列出赛道词典 T01–T10，含工作室契合说明。",
@@ -153,6 +158,31 @@ export async function POST(request: Request) {
           }
         },
       }),
+      fetch_page_markdown: tool({
+        description:
+          "把一条 http(s) 网页用浏览器转成 Markdown，用来补读库里留空的政策字段。一次只打开一个原链接。不要用它爬猪八戒、Fiverr 等人工案例站，也不要代替 list_leads 或 scan_sources。",
+        inputSchema: z.object({
+          url: z.string().describe("政策或通知的原始 http(s) 链接"),
+        }),
+        execute: async ({ url }) => {
+          const page = await fetchPageMarkdown(url, env.BROWSER);
+          if (!page.ok) {
+            await recordWork({ kind: "tool_fetch_page_markdown", status: "failed", message: `打开原文失败：${page.error}` });
+            return { error: page.error, url: page.url ?? url };
+          }
+          await recordWork({
+            kind: "tool_fetch_page_markdown",
+            status: "done",
+            message: `Agent 打开原文${page.truncated ? "（已截断）" : ""}：${page.url}`,
+          });
+          return {
+            url: page.url,
+            title: page.title,
+            truncated: page.truncated,
+            markdown: page.markdown,
+          };
+        },
+      }),
       add_opportunity: tool({
         description: "把用户人工找到的一条市场素材写入案例。必须有标题和 http(s) 原链接。未给出的赛道、供需侧、摘要和分数用本地规则补全。不爬取站点。",
         inputSchema: z.object({
@@ -197,5 +227,6 @@ export async function POST(request: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  // 推理留在模型侧。页面只渲染正文，不把 chain-of-thought 流进对话气泡。
+  return result.toUIMessageStreamResponse({ sendReasoning: false });
 }

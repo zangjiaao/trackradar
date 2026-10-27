@@ -147,7 +147,8 @@ export function ChatPanel() {
         ) : (
           <Text type="supporting" as="p">
             模型 {config?.model ?? "读取中"}
-            {config?.baseURL ? " · 使用自定义 Base URL" : ""}。回答会带上配置、最近政策和最近案例。也可以让助手把一条市场素材写入案例。
+            {config?.baseURL ? " · 使用自定义 Base URL" : ""}
+            。回答会先查已入库的政策和案例；福利或门槛为空时再打开原链接。也可以让助手把一条市场素材写入案例。
           </Text>
         )}
         {messages.map((message) => {
