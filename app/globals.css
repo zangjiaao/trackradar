@@ -1,0 +1,187 @@
+@layer reset, theme, base, astryx-base, astryx-theme, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "@astryxdesign/core/reset.css";
+@import "@astryxdesign/core/astryx.css";
+@import "@astryxdesign/theme-neutral/theme.css";
+@import "@astryxdesign/core/tailwind-theme.css";
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@source "../node_modules/streamdown/dist/*.js";
+
+.page-column {
+  width: 100%;
+  max-width: 1100px;
+  margin-inline: auto;
+  min-width: 0;
+}
+
+.track-select {
+  width: min(100%, 36rem);
+  min-width: 0;
+}
+
+.opportunity-toolbar,
+.opportunity-cards,
+.opportunity-card,
+.score-formula {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sort-select {
+  width: min(100%, 16rem);
+  min-width: 0;
+}
+
+.score-formula {
+  max-width: 75ch;
+}
+
+.opportunity-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.opportunity-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 0.75rem);
+  background: var(--color-background);
+  padding: 1rem 1.1rem;
+  overflow-wrap: anywhere;
+}
+
+.intel-label {
+  font-size: 0.8125rem;
+}
+
+.intel-hero,
+.intel-body {
+  line-height: 1.55;
+}
+
+.intel-hero {
+  font-size: 1.125rem;
+}
+
+.policy-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.policy-reading {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.65;
+}
+
+.policy-score {
+  flex: none;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  text-align: end;
+}
+
+.policy-title {
+  text-underline-offset: 3px;
+}
+
+.policy-meta {
+  line-height: 1.4;
+}
+
+.score-details {
+  font-size: 0.875rem;
+}
+
+.score-details summary {
+  cursor: pointer;
+}
+
+.reread-action {
+  width: min(100%, 16rem);
+}
+
+.entry-dialog-body {
+  max-height: min(68dvh, 680px);
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.entry-form {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@layer components {
+  nav.astryx-top-nav .astryx-top-nav-item {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 840px) {
+    nav.astryx-top-nav {
+      column-gap: 0.15rem;
+    }
+
+    nav.astryx-top-nav .astryx-top-nav-item {
+      font-size: 0.8125rem;
+      padding-inline: 0.35rem;
+    }
+  }
+
+  .chat-md {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .chat-md :is(p, ul, ol, blockquote, pre, table) {
+    margin-top: 0.35rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .chat-md :is(ul, ol) {
+    padding-left: 1.25rem;
+  }
+
+  .chat-md a {
+    color: var(--color-text-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .chat-md pre {
+    overflow-x: auto;
+    border-radius: var(--radius-md, 0.5rem);
+    background: var(--color-background-muted);
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
+  .chat-md :not(pre) > code {
+    border-radius: 0.25rem;
+    background: var(--color-background-muted);
+    padding: 0.05rem 0.3rem;
+    font-size: 0.85em;
+  }
+
+  .chat-md table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85em;
+  }
+
+  .chat-md :is(th, td) {
+    border: 1px solid var(--color-border);
+    padding: 0.25rem 0.45rem;
+    text-align: left;
+  }
+}
