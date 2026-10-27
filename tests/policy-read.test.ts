@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readPolicy } from "../lib/policy-read.ts";
-import { PROMPT_V1 } from "../lib/prompt.ts";
+import { PROMPT_V1, TOOL_ADDENDUM } from "../lib/prompt.ts";
 
 test("服务商资源池会写出相关片段和机会", () => {
   const reading = readPolicy("关于征集人工智能应用服务商资源池的通知");
@@ -36,4 +36,9 @@ test("默认提示词要求解读政策并过滤过宽口径", () => {
   assert.match(PROMPT_V1, /UI\/UX/);
   assert.match(PROMPT_V1, /先接小单/);
   assert.match(PROMPT_V1, /有助于发展/);
+  assert.match(PROMPT_V1, /回看分四步/);
+  assert.match(PROMPT_V1, /相关性分/);
+  assert.match(PROMPT_V1, /确定方向和 demo/);
+  assert.match(TOOL_ADDENDUM, /采集、评了、低分过滤、解读写入/);
+  assert.match(TOOL_ADDENDUM, /相关性分/);
 });

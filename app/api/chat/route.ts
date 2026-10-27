@@ -2,6 +2,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { convertToModelMessages, stepCountIs, streamText, tool, type UIMessage } from "ai";
 import { z } from "zod";
 import { buildRuntimeContext } from "@/lib/agent-context";
+import { leadBrief } from "@/lib/lead-brief";
 import { PROMPT_V1, TOOL_ADDENDUM } from "@/lib/prompt";
 import { getDb } from "@/lib/db";
 import { saveOpportunity } from "@/lib/opportunities";
@@ -76,14 +77,16 @@ export async function POST(request: Request) {
         },
       }),
       list_leads: tool({
-        description: "列出政策和案例。kind 省略时两侧都返回。每条都带原始 url，回答时必须保留链接。",
+        description:
+          "检索已留下的政策和案例，用来确定方向和 demo。返回相关性分、机会、福利、如何参与、门槛、联络人；案例返回价格信号、看到的内容和能力关系。低分过滤的候选不在这里。每条保留 url。",
         inputSchema: z.object({
           limit: z.number().int().min(1).max(30).optional().describe("返回条数，默认 15"),
           kind: z.enum(["policy", "case"]).optional().describe("policy 只看政策，case 只看案例，省略则两侧都看"),
+          keyword: z.string().optional().describe("按标题、解读、福利、门槛、联络人或案例信号检索"),
         }),
-        execute: async ({ limit, kind }) => {
+        execute: async ({ limit, kind, keyword }) => {
           try {
-            const leads = await listLeads(limit ?? 15, null, kind);
+            const leads = (await listLeads(limit ?? 15, null, kind, keyword)).map(leadBrief);
             await recordWork({ kind: "tool_list_leads", status: "done", message: `Agent 读取${kind === "case" ? "案例" : kind === "policy" ? "政策" : "政策和案例"}，返回 ${leads.length} 条。` });
             return { leads };
           } catch (error) {
@@ -118,7 +121,8 @@ export async function POST(request: Request) {
         },
       }),
       scan_sources: tool({
-        description: "到已启用的政策信源回看大约一年的列表页。先解读，只把和工作室能力明显相关的政策写入政策页。能打开的通知再读这一篇正文，不翻全站。执行过程记在任务页。",
+        description:
+          "到已启用的政策信源回看大约一年。四步：采集标题、发表时间、出处和正文入库；逐条评分；低分过滤；只解读留下的政策。留下的条目可供 list_leads 复用。不翻全站。执行过程记在任务页。",
         inputSchema: z.object({
           lookback_days: z.number().int().min(30).max(800).optional().describe("回看天数，默认 365"),
           region: z.string().optional().describe("只看某个地域，如上海、北京"),

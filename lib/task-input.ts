@@ -9,7 +9,7 @@ export type TaskInput = {
   enabled: boolean;
 };
 
-export const DEFAULT_INSTRUCTION = "到已配置信源回看约一年，把能映射到 T01–T10 的政策留下来。";
+export const DEFAULT_INSTRUCTION = "到已配置信源回看约一年：先采集标题、发表时间、出处和正文，再按工作室画像评分，低分不进入政策清单，只解读留下的政策。";
 
 export function parseTaskInput(body: Record<string, unknown>, partial = false): TaskInput {
   const name = typeof body.name === "string" ? body.name.trim().slice(0, 40) : "";

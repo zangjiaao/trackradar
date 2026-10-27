@@ -43,7 +43,7 @@ export function ScanSourcesButton() {
         <Link href="/">政策</Link>
       </HStack>
       <Text type="supporting" as="p">
-        按配置里已启用的信源去拉政策，解读后写入政策页。关系不大或过宽的不会进来。
+        先采集标题、时间和正文入库，再评分。低分不进政策页，只解读留下的。这些政策会留给对话确定方向。
       </Text>
       {message ? (
         <Text type="supporting" as="p">

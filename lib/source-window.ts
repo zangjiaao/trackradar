@@ -1,6 +1,3 @@
-import { exclusionNote, type TrackDictionary } from "@/lib/guess";
-import { readPolicy } from "@/lib/policy-read";
-
 const REGIONS = ["上海", "北京", "深圳", "杭州", "西安", "银川", "宁夏"];
 
 export type DatedItem = { iso: string; precision: "day" | "year" };
@@ -46,59 +43,6 @@ export function withinLookback(found: DatedItem | null, lookbackDays: number, no
 export function regionsInText(text: string | null | undefined): string[] {
   if (!text) return [];
   return REGIONS.filter((region) => text.includes(region));
-}
-
-export type KeptItem = {
-  title: string;
-  url: string;
-  track: string;
-  tracks: string[];
-  dated: boolean;
-  summary: string;
-  excerpt: string;
-  opportunity: string;
-};
-
-export function selectOpportunityItems(
-  items: { title: string; url: string }[],
-  lookbackDays: number,
-  now = new Date(),
-  dictionaries?: TrackDictionary[],
-): { keep: KeptItem[]; droppedOld: number; droppedExcluded: number; droppedUnmapped: number; droppedBroad: number } {
-  const keep: KeptItem[] = [];
-  let droppedOld = 0;
-  let droppedExcluded = 0;
-  let droppedUnmapped = 0;
-  let droppedBroad = 0;
-  for (const item of items) {
-    if (exclusionNote(`${item.title}\n${item.url}`)) {
-      droppedExcluded += 1;
-      continue;
-    }
-    const found = extractItemDate(item.title, item.url);
-    if (!withinLookback(found, lookbackDays, now)) {
-      droppedOld += 1;
-      continue;
-    }
-    const reading = readPolicy(item.title, dictionaries);
-    if (!reading.keep || !reading.tracks[0]) {
-      if (reading.reason === "excluded") droppedExcluded += 1;
-      else if (reading.reason === "broad") droppedBroad += 1;
-      else droppedUnmapped += 1;
-      continue;
-    }
-    keep.push({
-      title: item.title,
-      url: item.url,
-      track: reading.tracks[0],
-      tracks: reading.tracks,
-      dated: Boolean(found),
-      summary: reading.summary,
-      excerpt: reading.excerpt,
-      opportunity: reading.opportunity,
-    });
-  }
-  return { keep, droppedOld, droppedExcluded, droppedUnmapped, droppedBroad };
 }
 
 export function normalizeLookback(value: unknown): number {

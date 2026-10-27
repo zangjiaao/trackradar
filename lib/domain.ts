@@ -117,6 +117,8 @@ export type LeadRow = {
   score_competition: number | null;
   score_demo: number | null;
   score_total: number | null;
+  relevance_score: number | null;
+  relevance_reason: string | null;
   origin: string;
   created_at: string;
 };

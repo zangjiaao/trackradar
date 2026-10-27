@@ -3,10 +3,9 @@ import { isPlatform, isSide } from "./domain";
 import { getDb } from "./db";
 import { fetchPolicyList } from "./fetch-list";
 import { guessTrack, keywordList, type TrackDictionary } from "./guess";
-import { readPolicy } from "./policy-read";
-import { isTrackCode, sortTrackCodes, writeLeadTracks } from "./lead-tracks";
-import { publishedDay } from "./lead-presentation";
-import { skeletonScores } from "./scoring";
+import { isTrackCode, sortTrackCodes } from "./lead-tracks";
+import { formatScanSourceMessage } from "./policy-collect";
+import { ingestPolicyList } from "./policy-ingest";
 
 export async function listTracks(): Promise<TrackRow[]> {
   const { results } = await getDb()
@@ -68,33 +67,47 @@ async function attachTrackCodes(database: D1Database, rows: LeadQueryRow[]): Pro
 const LEAD_COLUMNS = `l.id, l.source_id, l.track_code, l.title, l.url, l.summary, l.relevant_excerpt, l.opportunity_note,
   l.studio_angle, l.subsidy_note, l.participation_note, l.who_can_apply, l.contact_note, l.window_note,
   l.region, l.side, l.site, l.signal, l.kind, l.published_at, l.score_capability, l.score_funding, l.score_demand, l.score_policy,
-  l.score_competition, l.score_demo, l.score_total, l.origin, l.created_at, s.name AS source_name`;
+  l.score_competition, l.score_demo, l.score_total, l.origin, l.created_at, s.name AS source_name,
+  pc.relevance_score AS relevance_score, pc.relevance_reason AS relevance_reason`;
 
-export async function listLeads(limit = 50, trackCode?: string | null, kind?: "policy" | "case" | null): Promise<LeadRow[]> {
+const LEAD_FROM = `FROM leads l
+  LEFT JOIN sources s ON s.id = l.source_id
+  LEFT JOIN policy_candidates pc ON pc.lead_id = l.id AND pc.stage = 'interpreted'`;
+
+export async function listLeads(
+  limit = 50,
+  trackCode?: string | null,
+  kind?: "policy" | "case" | null,
+  keyword?: string | null,
+): Promise<LeadRow[]> {
   const database = getDb();
   const track = trackCode && isTrackCode(trackCode) ? trackCode : null;
-  const kindClause = kind ? "l.kind = ?" : "1 = 1";
-  const statement = track
-    ? database
-        .prepare(
-          `SELECT ${LEAD_COLUMNS}
-           FROM leads l
-           LEFT JOIN sources s ON s.id = l.source_id
-           WHERE (${kindClause})
-             AND (l.id IN (SELECT lead_id FROM lead_tracks WHERE track_code = ?) OR l.track_code = ?)
-           ORDER BY l.created_at DESC LIMIT ?`,
-        )
-        .bind(...(kind ? [kind] : []), track, track, limit)
-    : database
-        .prepare(
-          `SELECT ${LEAD_COLUMNS}
-           FROM leads l
-           LEFT JOIN sources s ON s.id = l.source_id
-           WHERE ${kindClause}
-           ORDER BY l.created_at DESC LIMIT ?`,
-        )
-        .bind(...(kind ? [kind] : []), limit);
-  const { results } = await statement.all<LeadQueryRow>();
+  const term = keyword?.trim() ? `%${keyword.trim().replace(/[%_]/g, "").slice(0, 40)}%` : null;
+  const filters = ["1 = 1"];
+  const binds: Array<string | number> = [];
+  if (kind) {
+    filters.push("l.kind = ?");
+    binds.push(kind);
+  }
+  if (track) {
+    filters.push("(l.id IN (SELECT lead_id FROM lead_tracks WHERE track_code = ?) OR l.track_code = ?)");
+    binds.push(track, track);
+  }
+  if (term) {
+    filters.push(`(
+      l.title LIKE ? OR IFNULL(l.studio_angle, '') LIKE ? OR IFNULL(l.subsidy_note, '') LIKE ?
+      OR IFNULL(l.participation_note, '') LIKE ? OR IFNULL(l.who_can_apply, '') LIKE ?
+      OR IFNULL(l.contact_note, '') LIKE ? OR IFNULL(l.signal, '') LIKE ?
+      OR IFNULL(l.opportunity_note, '') LIKE ? OR IFNULL(l.summary, '') LIKE ?
+      OR IFNULL(pc.relevance_reason, '') LIKE ?
+    )`);
+    binds.push(term, term, term, term, term, term, term, term, term, term);
+  }
+  binds.push(limit);
+  const { results } = await database
+    .prepare(`SELECT ${LEAD_COLUMNS} ${LEAD_FROM} WHERE ${filters.join(" AND ")} ORDER BY l.created_at DESC LIMIT ?`)
+    .bind(...binds)
+    .all<LeadQueryRow>();
   return attachTrackCodes(database, results);
 }
 
@@ -245,8 +258,19 @@ export async function fetchSourcePreview(sourceId: string, save: boolean) {
   const dictionaries = await loadTrackDictionaries();
   const started = new Date().toISOString();
   let saved = 0;
-  if (save && fetched.items.length > 0) {
-    saved = await insertLeadsFromList(source, fetched.items);
+  let detail = `抽到 ${fetched.items.length} 条（仅预览）`;
+  if (save && fetched.items.length > 0 && !fetched.error) {
+    const tally = await ingestPolicyList({
+      database: getDb(),
+      source,
+      items: fetched.items,
+      lookbackDays: 365,
+      dictionaries,
+      deadline: Date.now() + 20_000,
+      origin: "crawl",
+    });
+    saved = tally.interpreted;
+    detail = formatScanSourceMessage(source.region, source.name, tally);
   }
   await getDb()
     .prepare(
@@ -257,7 +281,7 @@ export async function fetchSourcePreview(sourceId: string, save: boolean) {
       crypto.randomUUID(),
       source.id,
       fetched.error ? "failed" : "done",
-      fetched.error ? fetched.error : `抽到 ${fetched.items.length} 条${save ? `，新写入线索 ${saved} 条` : "（仅预览）"}`,
+      fetched.error ? fetched.error : detail,
       started,
       new Date().toISOString(),
     )
@@ -268,58 +292,6 @@ export async function fetchSourcePreview(sourceId: string, save: boolean) {
     error: fetched.error ?? null,
     saved,
   };
-}
-
-async function insertLeadsFromList(source: SourceRow, items: { title: string; url: string }[]): Promise<number> {
-  const database = getDb();
-  const dictionaries = await loadTrackDictionaries(database);
-  let saved = 0;
-  for (const item of items) {
-    const existing = await database.prepare("SELECT id FROM leads WHERE url = ?").bind(item.url).first<{ id: string }>();
-    if (existing) continue;
-    const reading = readPolicy(item.title, dictionaries);
-    if (!reading.keep) continue;
-    const tracks = reading.tracks;
-    const scores = skeletonScores(item.title, tracks[0] ?? null);
-    const id = crypto.randomUUID();
-    await database
-      .prepare(
-        `INSERT INTO leads (
-           id, source_id, track_code, title, url, summary, relevant_excerpt, opportunity_note, region, published_at,
-           studio_angle, subsidy_note, participation_note, who_can_apply, contact_note, window_note,
-           score_capability, score_funding, score_demand, score_policy, score_competition, score_demo, score_total, origin, kind
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'crawl', 'policy')`,
-      )
-      .bind(
-        id,
-        source.id,
-        tracks[0] ?? null,
-        item.title,
-        item.url,
-        reading.subsidyNote,
-        reading.excerpt || null,
-        reading.studioAngle,
-        source.region,
-        reading.publishedAt || publishedDay(item.title, item.url),
-        reading.studioAngle,
-        reading.subsidyNote,
-        reading.participationNote,
-        reading.whoCanApply,
-        reading.contactNote,
-        reading.windowNote,
-        scores.capability,
-        scores.funding_window,
-        scores.demand_density,
-        scores.policy_heat,
-        scores.competition,
-        scores.demo_feasibility,
-        scores.total,
-      )
-      .run();
-    await writeLeadTracks(database, id, tracks);
-    saved += 1;
-  }
-  return saved;
 }
 
 export async function searchSources(input: { region?: string; keyword?: string; fetch?: boolean }) {

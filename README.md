@@ -88,14 +88,15 @@ D1 绑定名是 `DB`，不是环境变量。
 - `lead_tracks`：机会和赛道的多对多标签。`leads.track_code` 仍是主赛道，用来打分
 - `sources`：宁夏 / 银川、杭州（门户 + 滨江）、深圳工信局、西安工信与高新、北京经信局、上海经信委产业发展与业务类
 - `keyword_sets`：历史采样关键词，不再作为主路径
-- `leads`：政策和案例共用一张表。`kind` 为 `policy` 或 `case`。`signal` 是案例的价格或信号。`published_at` 是原文发布日，没有则卡片用 `created_at` 标「入库」。政策解读用 `studio_angle`、`subsidy_note`、`participation_note`、`who_can_apply`、`contact_note`。人工录入是 `manual` 且 `kind=case`，信源回看写入是 `agent` 且 `kind=policy`
+- `leads`：政策和案例共用一张表。`kind` 为 `policy` 或 `case`。`signal` 是案例的价格或信号。`published_at` 是原文发布日，没有则卡片用 `created_at` 标「入库」。政策解读用 `studio_angle`、`subsidy_note`、`participation_note`、`who_can_apply`、`contact_note`。人工录入是 `manual` 且 `kind=case`，信源回看写入是 `agent` 且 `kind=policy`。对话的 `list_leads` 读这些解读字段，并带上候选表里的相关性分
+- `policy_candidates`：回看四步的候选。`stage` 为 `raw`、`scored`、`kept`、`dropped`、`interpreted`。低分停在 `dropped`，不进政策清单。解读写入后 `stage=interpreted` 并连到 `leads`
 - `manual_samples`：旧粘贴解析留下的表。主路径不再往这里写
 - `prompt_profiles`：提示词 v1
 - `agent_tasks`：用户添加的每天或每周一任务
 - `crawl_jobs`：执行记录。信源回看、定时任务、试抓、补全、录入和对话工具调用。可关联 `task_id`
 - `app_settings`：配置页保存的模型、旧的采集开关，以及 `material_sites` 站点说明。密钥只存在本地库，接口不回显全文
 
-主路径是：先在配置里放模型和信源，再在对话或任务里回看这些信源大约一年。政策先解读，只把和工作室能力或 T01–T10 明显相关的条目写入政策页。`leads.kind` 为 `policy` 或 `case`：信源采集和种子迁成政策，人工录入以及猪八戒、Fiverr 等市场站点迁成案例。一条可以同时打上多个赛道标签。政策页用 `/?track=T01`，案例页用 `/cases?track=T01`，并用条数和近 7 日增减看热度。赛道词典在配置里改。只读列表页标题，能打开的通知再读这一篇正文，不翻全站。OPC 社区、猪八戒、Fiverr、58同城、小红书、闲鱼、淘宝、视频号仍由人工在案例页录入，站点代码里 Fiverr 是 `fiverr`。对话可以对照政策福利、门槛和这些案例，建议现在做什么有助于发展，以及下一步做什么 demo。粘贴解析不是主路径。
+主路径是：先在配置里放模型和信源，再在对话或任务里回看这些信源大约一年。回看分四步：采集标题、发表时间、出处和正文入库（不因赛道未映射丢掉）；逐条做相关性评分；低于阈值的标为不展示；只解读留下的政策。执行记录写采集、评了、低分过滤、解读写入。`leads.kind` 为 `policy` 或 `case`：信源采集和种子迁成政策，人工录入以及猪八戒、Fiverr 等市场站点迁成案例。一条可以同时打上多个赛道标签。政策页用 `/?track=T01`，案例页用 `/cases?track=T01`，并用条数和近 7 日增减看热度。赛道词典在配置里改，只作提示，不再单独决定丢掉。列表页用来发现标题，预算内再读正文。OPC 社区、猪八戒、Fiverr、58同城、小红书、闲鱼、淘宝、视频号仍由人工在案例页录入，站点代码里 Fiverr 是 `fiverr`。留下的政策和案例会进入对话：`list_leads` 能看到相关性分和解读字段，用来确定方向和 demo。粘贴解析不是主路径。
 
 通用列表适配器读取页面里的 `<a>`，优先用 `title`。上海产业发展、北京通知公告、深圳工信局通知公告、西安工信局通知公告在开发时可以抽出标题和链接。门户首页可能只有导航。
 
@@ -112,7 +113,7 @@ D1 绑定名是 `DB`，不是环境变量。
 - `0 2 * * *`：每天 10:00（北京时间）
 - `0 1 * * 1`：每周一 09:00（北京时间）
 
-任务页添加的每日或每周任务到点后，走和对话相同的回看：读已启用信源列表，留下约一年内能映射赛道的政策，并记下每个信源。没有到期任务时写一条跳过。本地可以用 Wrangler 触发：
+任务页添加的每日或每周任务到点后，走和对话相同的四步回看，并记下每个信源的采集、评分、低分过滤和解读写入。没有到期任务时写一条跳过。本地可以用 Wrangler 触发：
 
 ```bash
 curl "http://localhost:8787/cdn-cgi/handler/scheduled?cron=0+2+*+*+*"

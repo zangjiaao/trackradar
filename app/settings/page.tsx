@@ -83,7 +83,7 @@ export default async function SettingsPage() {
         <VStack gap={3} id="sources">
           <Heading level={2}>信源</Heading>
           <Text type="supporting" as="p">
-            关掉的信源不会被对话或定时任务访问。试抓仍可只预览，或写入政策。自动回看在{" "}
+            关掉的信源不会被对话或定时任务访问。试抓仍可只预览，或按同样的四步写入政策。自动回看在{" "}
             <Link href="/chat">对话</Link>和<Link href="/tasks">任务</Link>。
           </Text>
           <SourceList sources={sources} />
