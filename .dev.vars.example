@@ -6,3 +6,6 @@ OPENAI_API_KEY=
 OPENAI_BASE_URL=
 # 可选，默认 gpt-4o-mini
 OPENAI_MODEL=gpt-4o-mini
+# 可选。对话里的 web_search 用。到 https://app.tavily.com 复制 API Key。
+# 配置页保存的 Tavily 密钥优先于这里。未配置时工具会提示去配置，不会静默失败。
+TAVILY_API_KEY=

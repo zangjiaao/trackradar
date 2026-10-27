@@ -1,12 +1,17 @@
 import { isCadence } from "@/lib/collect";
-import { readCollectConfig, readMaterialSites, readPublicModel, saveCollectSettings, saveMaterialSites, saveModelSettings } from "@/lib/settings";
+import { readCollectConfig, readMaterialSites, readPublicModel, readPublicTavily, saveCollectSettings, saveMaterialSites, saveModelSettings, saveTavilySettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const [model, collect, materialSites] = await Promise.all([readPublicModel(), readCollectConfig(), readMaterialSites()]);
-    return Response.json({ model, collect, materialSites });
+    const [model, collect, materialSites, tavily] = await Promise.all([
+      readPublicModel(),
+      readCollectConfig(),
+      readMaterialSites(),
+      readPublicTavily(),
+    ]);
+    return Response.json({ model, collect, materialSites, tavily });
   } catch (error) {
     const message = error instanceof Error ? error.message : "读取配置失败";
     return Response.json({ error: message }, { status: 500 });
@@ -22,6 +27,8 @@ export async function PUT(request: Request) {
     collectEnabled?: unknown;
     cadence?: unknown;
     materialSites?: unknown;
+    tavilyApiKey?: unknown;
+    clearTavilyKey?: unknown;
   } | null;
   if (!body) return Response.json({ error: "需要 JSON 请求体。" }, { status: 400 });
   try {
@@ -46,8 +53,19 @@ export async function PUT(request: Request) {
     if (typeof body.materialSites === "string") {
       await saveMaterialSites(body.materialSites);
     }
-    const [model, collect, materialSites] = await Promise.all([readPublicModel(), readCollectConfig(), readMaterialSites()]);
-    return Response.json({ model, collect, materialSites });
+    if ("tavilyApiKey" in body || body.clearTavilyKey === true) {
+      await saveTavilySettings({
+        apiKey: typeof body.tavilyApiKey === "string" ? body.tavilyApiKey : undefined,
+        clearKey: body.clearTavilyKey === true,
+      });
+    }
+    const [model, collect, materialSites, tavily] = await Promise.all([
+      readPublicModel(),
+      readCollectConfig(),
+      readMaterialSites(),
+      readPublicTavily(),
+    ]);
+    return Response.json({ model, collect, materialSites, tavily });
   } catch (error) {
     const message = error instanceof Error ? error.message : "保存配置失败";
     return Response.json({ error: message }, { status: 400 });

@@ -11,10 +11,10 @@ export const POLICY_READING_RULES =
  * 先查库、字段空了再打开原文，然后才下结论。不要把思考过程写进回复。
  */
 export const REFRESH_REASSESS =
-  "按需用工具。回答依赖当前政策或案例时（再评估、结合最新情报建议 demo、刚采完或刚加了案例）再调 list_leads；只有确实要新爬门户时才调 scan_sources。不需要新鲜数据就不要调。别拿会话里更早的工具结果当现状，也别空问确认。猪八戒、Fiverr、小红书、58 仍不爬取。要新加一条案例却没给链接时，才请用户贴标题和原链接。库内福利、门槛、如何参与或联络人为空、又带有原链接时，先用 fetch_page_markdown 打开那一条再下结论，不要凭空编这些字段。不要用 fetch_page_markdown 批量爬全站，也不要用它代替 list_leads 或 scan_sources，更不要打开猪八戒、Fiverr 等人工案例站。先调用工具再作答，不要把思考过程写进回复。";
+  "按需用工具。回答依赖当前政策或案例时（再评估、结合最新情报建议 demo、刚采完或刚加了案例）再调 list_leads；只有确实要新爬门户时才调 scan_sources。不需要新鲜数据就不要调。别拿会话里更早的工具结果当现状，也别空问确认。猪八戒、Fiverr、小红书、58 仍不爬取。要新加一条案例却没给链接时，才请用户贴标题和原链接。库内福利、门槛、如何参与或联络人为空、又带有原链接时，先用 fetch_page_markdown 打开那一条再下结论，不要凭空编这些字段。不要用 fetch_page_markdown 批量爬全站，也不要用它代替 list_leads 或 scan_sources，更不要打开猪八戒、Fiverr 等人工案例站。库内仍不足、或用户明确要查网上公开信息时，再用 web_search；搜到有价值的原链后再用 fetch_page_markdown 深读。不要用 web_search 代替 scan_sources，也不要用它去爬猪八戒、Fiverr 等人工案例站。先调用工具再作答，不要把思考过程写进回复。";
 
-/** 一轮对话最多几次模型调用。要留出 list_leads、若干次打开原文，以及最后作答。 */
-export const CHAT_TOOL_STEPS = 8;
+/** 一轮对话最多几次模型调用。要留出查库、联网搜索、若干次打开原文，以及最后作答。 */
+export const CHAT_TOOL_STEPS = 10;
 
 /** 对话里建议下一步 demo 的参谋口径。已有提示词由迁移补上同样的句子。 */
 export const STUDIO_ADVICE =
@@ -24,9 +24,10 @@ export const STUDIO_ADVICE =
 export const PROMPT_V1 = `${PROMPT_V1_CORE}${POLICY_READING_RULES}${STUDIO_ADVICE}`;
 
 export const TOOL_ADDENDUM = [
-  "你可以使用工具 list_tracks、list_leads、search_sources、scan_sources、add_opportunity、fetch_page_markdown。",
-  "先查再答。问题依赖已入库政策或案例的福利、门槛、如何参与、联络人或机会时，先调 list_leads。这些字段为空、该条仍有 url 时，再调 fetch_page_markdown 读原文，然后才写结论。原文没有的项就说没有。不要不查就回答，也不要把推理草稿或「让我先想一下」写进用户可见回复。",
-  "fetch_page_markdown 把一条 http(s) 网页转成 Markdown，用来补读库里留空的政策字段，例如宁波、银川通知里的奖补和门槛。一次只打开少量原链接。正文过长会被截断。不要用它批量爬全站，不要代替 list_leads 或 scan_sources，不要打开猪八戒、Fiverr、58、小红书、闲鱼、淘宝、视频号。",
+  "你可以使用工具 list_tracks、list_leads、search_sources、scan_sources、add_opportunity、fetch_page_markdown、web_search。",
+  "先查再答。问题依赖已入库政策或案例的福利、门槛、如何参与、联络人或机会时，先调 list_leads。这些字段为空、该条仍有 url 时，再调 fetch_page_markdown 读原文，然后才写结论。原文没有的项就说没有。库内仍不足、或用户明确要查网上最新公开信息时，再用 web_search。搜到有价值的原链后，可用 fetch_page_markdown 深读那一页。不要不查就回答，也不要把推理草稿或「让我先想一下」写进用户可见回复。",
+  "fetch_page_markdown 把一条 http(s) 网页转成 Markdown，用来补读库里留空的政策字段，或深读 web_search 找到的某一条原链。一次只打开少量链接。正文过长会被截断。不要用它批量爬全站，不要代替 list_leads 或 scan_sources，不要打开猪八戒、Fiverr、58、小红书、闲鱼、淘宝、视频号。",
+  "web_search 只返回标题、链接和短摘要，不返回整页。它用来补库外的公开信息，不代替 list_leads，也不代替 scan_sources 做政策信源回看。不要用搜索去爬猪八戒、Fiverr、58、小红书、闲鱼、淘宝、视频号，那些仍由人工录入。",
   "引用任何政策或线索时必须保留原始链接。",
   "打分使用默认权重：能力匹配 25%、资金/窗口 20%、需求密度 20%、政策热度 15%、竞争（分高表示竞争更低）10%、demo 可行 10%。分数是排序建议，不是调研结论。",
   "排除汽车、机器人、具身智能硬件、芯片与服务器制造。",

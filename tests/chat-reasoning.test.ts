@@ -18,5 +18,5 @@ test("官方 OpenAI 推理模型使用 low effort，不要求展示思考过程"
   assert.deepEqual(openAiChatReasoningOptions("gpt-5-mini", "https://api.openai.com/v1"), { reasoningEffort: "low" });
   assert.deepEqual(openAiChatReasoningOptions("gpt-5.4", "https://api.openai.com/v1/"), { reasoningEffort: "low" });
   assert.match(TOOL_ADDENDUM, /不要把推理草稿|不要把思考过程写进/);
-  assert.ok(CHAT_TOOL_STEPS >= 8);
+  assert.ok(CHAT_TOOL_STEPS >= 10);
 });

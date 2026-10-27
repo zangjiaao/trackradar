@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { collectFromMap, type Cadence, type CollectConfig } from "@/lib/collect";
 import { getDb } from "@/lib/db";
 import { DEFAULT_MATERIAL_SITES } from "@/lib/domain";
+import { normalizeTavilyKey, presentTavilyKey } from "@/lib/web-search";
 
 export type { Cadence, CollectConfig };
 
@@ -112,6 +113,39 @@ export async function saveModelSettings(input: { apiKey?: string; clearKey?: boo
     if (!model || model.length > 80 || /\s/.test(model)) throw new Error("模型名不能为空，且不能含空格。");
     await putSetting("openai_model", model);
   }
+}
+
+export async function readTavilyApiKey(): Promise<string | null> {
+  let map: Record<string, string> = {};
+  try {
+    map = await readSettingsMap();
+  } catch {
+    map = {};
+  }
+  const stored = map.tavily_api_key?.trim();
+  if (stored) return stored;
+  return env.TAVILY_API_KEY?.trim() || null;
+}
+
+export async function readPublicTavily(): Promise<ReturnType<typeof presentTavilyKey>> {
+  let map: Record<string, string> = {};
+  try {
+    map = await readSettingsMap();
+  } catch {
+    map = {};
+  }
+  return presentTavilyKey(map.tavily_api_key, env.TAVILY_API_KEY);
+}
+
+export async function saveTavilySettings(input: { apiKey?: string; clearKey?: boolean }): Promise<void> {
+  if (input.clearKey) {
+    await getDb().prepare("DELETE FROM app_settings WHERE key = 'tavily_api_key'").run();
+    return;
+  }
+  if (input.apiKey === undefined || !input.apiKey.trim()) return;
+  const parsed = normalizeTavilyKey(input.apiKey);
+  if (!parsed.ok) throw new Error(parsed.error);
+  await putSetting("tavily_api_key", parsed.key);
 }
 
 export async function readMaterialSites(): Promise<string> {

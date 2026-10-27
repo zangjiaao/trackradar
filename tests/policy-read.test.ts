@@ -69,6 +69,11 @@ test("默认提示词要求解读政策并过滤过宽口径", () => {
   assert.match(TOOL_ADDENDUM, /fetch_page_markdown/);
   assert.match(TOOL_ADDENDUM, /不要凭空编这些字段/);
   assert.match(TOOL_ADDENDUM, /不要把思考过程写进回复/);
+  assert.match(TOOL_ADDENDUM, /先调 list_leads/);
+  assert.match(TOOL_ADDENDUM, /库内仍不足、或用户明确要查网上最新公开信息时，再用 web_search/);
+  assert.match(TOOL_ADDENDUM, /搜到有价值的原链后，可用 fetch_page_markdown 深读/);
+  assert.match(TOOL_ADDENDUM, /不代替 scan_sources 做政策信源回看/);
+  assert.match(TOOL_ADDENDUM, /不要用搜索去爬猪八戒、Fiverr/);
   assert.doesNotMatch(TOOL_ADDENDUM, /立刻再调 list_leads/);
   assert.doesNotMatch(PROMPT_V1, /不要问选哪一种/);
 });

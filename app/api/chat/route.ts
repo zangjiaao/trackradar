@@ -10,7 +10,8 @@ import { CHAT_TOOL_STEPS, PROMPT_V1, TOOL_ADDENDUM } from "@/lib/prompt";
 import { getDb } from "@/lib/db";
 import { saveOpportunity } from "@/lib/opportunities";
 import { getActivePrompt, listLeads, listTracks, searchSources } from "@/lib/queries";
-import { readModelConfig } from "@/lib/settings";
+import { readModelConfig, readTavilyApiKey } from "@/lib/settings";
+import { webSearch } from "@/lib/web-search";
 import { runSourceScan } from "@/lib/source-scan";
 import { normalizeLookback } from "@/lib/source-window";
 import { recordWork } from "@/lib/work-log";
@@ -158,9 +159,31 @@ export async function POST(request: Request) {
           }
         },
       }),
+      web_search: tool({
+        description:
+          "在互联网上搜索公开信息，只返回标题、链接和短摘要。库内政策或案例不够、或用户明确要查网上最新信息时使用。不要用它代替 scan_sources，也不要搜索猪八戒、Fiverr 等人工案例站。要读某一条结果的正文时，再用 fetch_page_markdown。",
+        inputSchema: z.object({
+          query: z.string().describe("搜索词，例如 宁波 人工智能 奖补 2026"),
+          max_results: z.number().int().min(1).max(10).optional().describe("返回条数，默认 5，最多 10"),
+        }),
+        execute: async ({ query, max_results }) => {
+          const found = await webSearch({ query, maxResults: max_results, apiKey: await readTavilyApiKey() });
+          const brief = query.trim().replace(/\s+/g, " ").slice(0, 80);
+          if (!found.ok) {
+            await recordWork({ kind: "tool_web_search", status: "failed", message: `联网搜索失败：${found.error}` });
+            return { error: found.error, query };
+          }
+          await recordWork({
+            kind: "tool_web_search",
+            status: "done",
+            message: `联网搜索：${brief || "（空）"}，${found.results.length} 条。`,
+          });
+          return { query: found.query, results: found.results };
+        },
+      }),
       fetch_page_markdown: tool({
         description:
-          "把一条 http(s) 网页用浏览器转成 Markdown，用来补读库里留空的政策字段。一次只打开一个原链接。不要用它爬猪八戒、Fiverr 等人工案例站，也不要代替 list_leads 或 scan_sources。",
+          "把一条 http(s) 网页用浏览器转成 Markdown。用来补读库里留空的政策字段，或深读 web_search 找到的某一条原链。一次只打开一个链接。不要用它爬猪八戒、Fiverr 等人工案例站，也不要代替 list_leads 或 scan_sources。",
         inputSchema: z.object({
           url: z.string().describe("政策或通知的原始 http(s) 链接"),
         }),
