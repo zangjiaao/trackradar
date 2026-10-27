@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       }),
       list_leads: tool({
         description:
-          "读取数据库里当前的政策和案例，用来确定方向和 demo。用户说重新获取、又采了一遍、案例加了或再评估时必须重新调用，用这一轮的返回，不要沿用对话里更早的结果。返回相关性分、机会、福利、如何参与、门槛、联络人；案例返回价格信号、看到的内容和能力关系。低分过滤的候选不在这里。每条保留 url。省略 kind 时两侧都看；用户说已经在页面上加过案例时 kind 用 case。",
+          "读取数据库里当前的政策和案例。回答依赖这份清单时使用，不需要新鲜数据时不必调用。返回相关性分、机会、福利、如何参与、门槛、联络人；案例返回价格信号、看到的内容和能力关系。低分过滤的候选不在这里。每条保留 url。省略 kind 时两侧都看。",
         inputSchema: z.object({
           limit: z.number().int().min(1).max(30).optional().describe("返回条数，默认 15"),
           kind: z.enum(["policy", "case"]).optional().describe("policy 只看政策，case 只看案例，省略则两侧都看"),
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
       }),
       scan_sources: tool({
         description:
-          "到已启用的政策信源回看大约一年。用户明确说再扫一遍、回看信源或重新采集时直接调用，不用先确认；调用后接着 list_leads 再评估。用户只是说已经采过、要再评估时不要调用本工具，改用 list_leads。先采集标题、时间和正文，通知页的 PDF 附件会抽进正文。同一列表会翻后续页，直到超出回看窗口。有模型时按政府在用、在采的产品写一段解读，方便定 demo；无关的不进政策页。没有密钥时不写入政策页。不翻全站。执行过程记在任务页。",
+          "到已启用的政策信源回看大约一年。只有确实要新爬门户时使用。先采集标题、时间和正文，通知页的 PDF 附件会抽进正文。同一列表会翻后续页，直到超出回看窗口。有模型时按政府在用、在采的产品写一段解读，方便定 demo；无关的不进政策页。没有密钥时不写入政策页。不翻全站。执行过程记在任务页。",
         inputSchema: z.object({
           lookback_days: z.number().int().min(30).max(800).optional().describe("回看天数，默认 365"),
           region: z.string().optional().describe("只看某个地域，如上海、北京"),
