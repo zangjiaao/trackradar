@@ -28,7 +28,7 @@ const SKIP_TITLES = new Set([
 
 function isNavigationTitle(title: string): boolean {
   if (SKIP_TITLES.has(title)) return true;
-  return title.length <= 16 && /首页|公开|指南|年报|机构|职能|导航|登录|更多|栏目|地图|声明|备案|简体|繁体/.test(title);
+  return title.length <= 16 && /首页|公开|指南|年报|机构|职能|导航|登录|更多|栏目|地图|声明|备案|简体|繁体|要闻/.test(title);
 }
 
 function isArticleLink(item: ListItem): boolean {
@@ -57,6 +57,16 @@ function textContent(html: string): string {
   return decodeEntities(html.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
 }
 
+/** 锚点没有 title 时，用内部标题节点的 title，避免把日期和摘要拼进标题。 */
+function anchorTitle(attrs: string, inner: string): string {
+  const own = decodeEntities(readAttr(attrs, "title")?.trim() ?? "");
+  if (own.length >= 8) return own;
+  const nested = inner.match(/title\s*=\s*(?:"([^"]{8,})"|'([^']{8,})')/i);
+  const nestedTitle = decodeEntities((nested?.[1] ?? nested?.[2] ?? "").trim());
+  if (nestedTitle.length >= 8) return nestedTitle;
+  return textContent(inner);
+}
+
 function resolveUrl(href: string, baseUrl: string): string | null {
   try {
     const url = new URL(href, baseUrl).href;
@@ -81,8 +91,7 @@ function extractDatedNotices(html: string, baseUrl: string): ListItem[] | null {
     if (!match) continue;
     const href = readAttr(match[1] ?? "", "href")?.trim() ?? "";
     if (!href || href.startsWith("#") || href.toLowerCase().startsWith("javascript:")) continue;
-    const titled = decodeEntities(readAttr(match[1] ?? "", "title")?.trim() ?? "");
-    const title = titled || textContent(match[2] ?? "");
+    const title = anchorTitle(match[1] ?? "", match[2] ?? "");
     if (title.length < 8 || isNavigationTitle(title)) continue;
     const url = resolveUrl(href, baseUrl);
     if (!url || seen.has(url)) continue;
@@ -124,8 +133,7 @@ export function extractListItems(html: string, baseUrl: string, limit = 30): Lis
     const href = readAttr(match[1] ?? "", "href")?.trim() ?? "";
     if (!href || href.startsWith("#") || href.toLowerCase().startsWith("javascript:")) continue;
     if (href.includes("'+") || href.includes("${")) continue;
-    const titled = decodeEntities(readAttr(match[1] ?? "", "title")?.trim() ?? "");
-    const title = titled || textContent(match[2] ?? "");
+    const title = anchorTitle(match[1] ?? "", match[2] ?? "");
     if (title.length < 8 || isNavigationTitle(title) || /^\d+$/.test(title)) continue;
     let url: string;
     try {

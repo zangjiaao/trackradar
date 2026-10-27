@@ -31,7 +31,16 @@ INSERT INTO sources (id, region, name, list_url, adapter, enabled, notes) VALUES
   ('src_nx_gxt', '宁夏', '自治区工信厅门户', 'https://gxt.nx.gov.cn/', 'generic_list', 1, '门户入口，供后续换成通知公告栏目。'),
   ('src_yc_gov', '宁夏', '银川市人民政府门户', 'https://www.yinchuan.gov.cn/', 'generic_list', 1, '银川入口。栏目 URL 确认后替换。'),
   ('src_hz_bj', '杭州', '滨江区 · 通知信息', 'https://www.hhtz.gov.cn/col/col1487002/index.html', 'generic_list', 1, '栏目页。若正文由脚本注入，适配器可能只抽到导航。'),
-  ('src_hz_gov', '杭州', '市人民政府门户', 'https://www.hangzhou.gov.cn/', 'generic_list', 1, '公报与通知的入口。开发环境未能连通该域名，种子仍保留官方门户。');
+  ('src_hz_gov', '杭州', '市人民政府门户', 'https://www.hangzhou.gov.cn/', 'generic_list', 1, '公报与通知的入口。开发环境未能连通该域名，种子仍保留官方门户。'),
+  ('src_hz_jxj', '杭州', '市经信局 · 通知文件', 'https://jxj.hangzhou.gov.cn/col/col1229252271/index.html', 'generic_list', 1, '通知文件栏目。静态页可能没有条目，抓取会读页面里的 jpaas 列表接口。'),
+  ('src_bj_zcwj', '北京', '市经信局 · 政策文件', 'https://jxj.beijing.gov.cn/zwgk/2024zcwj/', 'generic_list', 1, '政策文件栏目。通知公告列表已另有信源。'),
+  ('src_wh_tztg', '武汉', '市经信局 · 通知通告', 'https://jxj.wuhan.gov.cn/xwzx_9/tztg/', 'generic_list', 1, 'OPC 密度优先。通知通告列表。'),
+  ('src_suzhou_ggl', '苏州', '市工信局 · 公告栏', 'https://gxj.suzhou.gov.cn/szeic/ggl/common_list.shtml', 'generic_list', 1, 'OPC 密度优先。工信局公告栏。'),
+  ('src_cd_zwxx', '成都', '市经信局 · 政务信息', 'https://cdjx.chengdu.gov.cn/cdsjxw/c132860/zwxx.shtml', 'generic_list', 0, '政务信息列表返回 HTTP 412，正文是瑞数 WAF 脚本，当前请求拿不到通知。先停用。'),
+  ('src_nb_dsjj', '宁波', '市数据局 · 通知公告', 'https://dsjj.ningbo.gov.cn/col/col1229578992/index.html', 'generic_list', 1, 'OPC 密度优先。栏目页本身多半只有导航，通知列表由页面里的 jpaas 列表接口补齐（col1229578992）。旧栏目 col1229050879 重复发文，不另收。'),
+  ('src_nb_jxj', '宁波', '市经信局 · 通知公告', 'http://jxj.ningbo.gov.cn/col/col1229561613/index.html', 'generic_list', 1, 'OPC 密度优先。栏目 col1229561613 的列表由 jpaas 接口补齐。人工智能 OPC 社区申报未核到单篇，故收栏目。'),
+  ('src_yc_bmwj', '银川', '市工信局 · 部门文件', 'https://yinchuan.gov.cn/xxgk/bmxxgkml/sgxj/xxgkml_1893/bmqtwj_1901/', 'generic_list', 1, '市工信局部门文件。银川栏目；扫描宁夏时一并命中。市政府门户信源仍保留。'),
+  ('src_nx_gsgg', '宁夏', '自治区工信厅 · 公示公告', 'https://gxt.nx.gov.cn/zwgk/fdzdgknr/glfw/gsgg/', 'generic_list', 1, '公示公告栏目。工信厅门户信源仍保留。');
 
 INSERT INTO keyword_sets (id, name, platform, keywords, track_code) VALUES
   ('kw_xy_kb', '闲鱼 · 知识库', 'xianyu', '企业知识库' || char(10) || 'RAG搭建' || char(10) || '文档问答', 'T01'),

@@ -1,4 +1,4 @@
-const REGIONS = ["上海", "北京", "深圳", "杭州", "西安", "银川", "宁夏"];
+const REGIONS = ["上海", "北京", "深圳", "杭州", "西安", "武汉", "苏州", "成都", "宁波", "银川", "宁夏"];
 
 export type DatedItem = { iso: string; precision: "day" | "year" };
 

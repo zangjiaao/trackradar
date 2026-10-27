@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { composeListDate, extractItemDate, withinLookback } from "../lib/source-window.ts";
+import { composeListDate, extractItemDate, regionsInText, withinLookback } from "../lib/source-window.ts";
 
 const now = new Date("2026-10-26T00:00:00Z");
+
+test("回看指令能认出优先城市", () => {
+  assert.deepEqual(regionsInText("看武汉、苏州、成都和宁波的算力券"), ["武汉", "苏州", "成都", "宁波"]);
+});
 
 test("完整日期按回看天数判断，只有年份时保留今年和去年", () => {
   const day = extractItemDate("通知", "https://example.com/20261001/a.html");

@@ -6,6 +6,7 @@ import {
   MAX_PDF_BYTES,
   PDF_FETCH_MS,
 } from "@/lib/article-attachments";
+import { browserHeaders, readResponseText, sameSiteReferer } from "@/lib/browser-headers";
 import { readPdfText } from "@/lib/pdf-text";
 
 function htmlToText(html: string): string {
@@ -90,7 +91,7 @@ async function attachmentExcerpt(
       const response = await load(pdfUrl, {
         redirect: "follow",
         signal: AbortSignal.timeout(Math.min(PDF_FETCH_MS, remaining)),
-        headers: { accept: "application/pdf,*/*", "user-agent": "TrackRadarMVP/0.1" },
+        headers: browserHeaders(pdfUrl, { accept: "pdf", referer: pageUrl }),
       });
       if (!response.ok) continue;
       const bytes = await readBounded(response, MAX_PDF_BYTES);
@@ -115,10 +116,10 @@ export async function fetchPolicyArticle(
     const response = await load(url, {
       redirect: "follow",
       signal: AbortSignal.timeout(10_000),
-      headers: { accept: "text/html,application/xhtml+xml", "user-agent": "TrackRadarMVP/0.1" },
+      headers: browserHeaders(url, { accept: "document", referer: sameSiteReferer(url) }),
     });
     if (!response.ok) return null;
-    const html = await response.text();
+    const html = await readResponseText(response);
     const notice = htmlToText(html).slice(0, 12_000);
     const attachment = await attachmentExcerpt(url, html, options);
     if (notice.length < 80 && attachment.length < 40) return null;

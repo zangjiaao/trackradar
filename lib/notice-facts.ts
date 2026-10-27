@@ -52,7 +52,7 @@ function expenseTypes(text: string): string[] {
 }
 
 function regionName(text: string): string | null {
-  return ["西安", "上海", "北京", "深圳", "杭州", "银川", "宁夏"].find((item) => text.includes(item)) ?? null;
+  return ["西安", "上海", "北京", "深圳", "杭州", "武汉", "苏州", "成都", "宁波", "银川", "宁夏"].find((item) => text.includes(item)) ?? null;
 }
 
 /** 从通知正文抽出机会、福利、路径、门槛和联络人。没有的项留空。 */
