@@ -1,31 +1,14 @@
 import type { CrawlJobRow } from "@/lib/domain";
 import { getDb } from "@/lib/db";
+import { clearCrawlJobs } from "@/lib/work-log-view";
+
+export type { WorkLogItem } from "@/lib/work-log-view";
+export { WORK_KIND_LABEL, WORK_STATUS_LABEL, formatWorkTime, presentWorkMessage } from "@/lib/work-log-view";
 
 export type WorkRow = CrawlJobRow & {
   source_name: string | null;
   source_region: string | null;
   task_name: string | null;
-};
-
-export const WORK_KIND_LABEL: Record<string, string> = {
-  policy_scan: "政策巡检",
-  weekly_report: "周报",
-  manual_fetch: "信源试抓",
-  tool_list_tracks: "查看赛道",
-  tool_list_leads: "查看机会",
-  tool_search_sources: "查询信源",
-  tool_suggest_opportunity: "补全素材",
-  manual_entry: "录入案例",
-  tool_add_opportunity: "对话写入案例",
-  source_scan: "信源回看",
-  task_run: "执行任务",
-};
-
-export const WORK_STATUS_LABEL: Record<string, string> = {
-  placeholder: "占位",
-  skipped: "跳过",
-  done: "完成",
-  failed: "失败",
 };
 
 export async function recordWork(input: { kind: string; status: string; message: string; sourceId?: string | null }): Promise<void> {
@@ -59,4 +42,9 @@ export async function listWork(limit = 80): Promise<WorkRow[]> {
     .bind(limit)
     .all<WorkRow>();
   return results;
+}
+
+/** 清空全部执行记录，不删除定时任务。 */
+export async function clearWorkLog(): Promise<number> {
+  return clearCrawlJobs(getDb());
 }
