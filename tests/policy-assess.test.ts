@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ASSESS_INSTRUCTIONS, acceptPolicyAssessment, isTemplateReading } from "../lib/policy-assess.ts";
+import { ASSESS_INSTRUCTIONS, acceptPolicyAssessment, isTemplateReading, leadNeedsAgentReading } from "../lib/policy-assess.ts";
 
 test("顺口提到大模型的新闻不能靠分数或套话入库", () => {
   assert.equal(
@@ -37,4 +37,26 @@ test("评估提示要求低相关新闻留空解读", () => {
   assert.match(ASSESS_INSTRUCTIONS, /reading 留空/);
   assert.match(ASSESS_INSTRUCTIONS, /做这个场景里的软件助手/);
   assert.match(ASSESS_INSTRUCTIONS, /50 分及以上/);
+  assert.match(ASSESS_INSTRUCTIONS, /验收公示/);
+  assert.match(ASSESS_INSTRUCTIONS, /没有新的申报入口/);
+  assert.match(ASSESS_INSTRUCTIONS, /体检、租车/);
+});
+
+test("只有占位摘要的政策还可以再交给模型，已有解读的不再占名额", () => {
+  assert.equal(
+    leadNeedsAgentReading({
+      summary: "信源回看约 365 天，映射 T09。分数是价值分，不是调研结论。",
+      studio_angle: "",
+      opportunity_note: "",
+    }),
+    true,
+  );
+  assert.equal(leadNeedsAgentReading({ summary: "地域是西安。", studio_angle: null, opportunity_note: null }), true);
+  assert.equal(
+    leadNeedsAgentReading({
+      studio_angle: "帮西安制造业中小企业做第五批数改里的软件购买和申报。",
+      summary: "核定投入不超过 50%。",
+    }),
+    false,
+  );
 });

@@ -9,25 +9,33 @@ function asDay(year: string, monthText: string, dayText: string): DatedItem | nu
   return { iso: `${year}-${monthText.padStart(2, "0")}-${dayText.padStart(2, "0")}`, precision: "day" };
 }
 
+/** 列表旁路的「28」+「2026-09」合成发布日。月份或日子不合法时返回空。 */
+export function composeListDate(dayText: string, yearMonthText: string): string | null {
+  const yearMonth = yearMonthText.trim().match(/^(20\d{2})-(\d{2})$/);
+  const day = dayText.trim().match(/^(\d{1,2})$/);
+  if (!yearMonth || !day) return null;
+  return asDay(yearMonth[1], yearMonth[2], day[1])?.iso ?? null;
+}
+
 export function extractItemDate(title: string, url: string): DatedItem | null {
   const text = `${url} ${title}`;
-  const dashed = text.match(/(20\d{2})-(\d{2})-(\d{2})/);
+  const dashed = text.match(/(?:^|[^\d])(20\d{2})-(\d{2})-(\d{2})(?!\d)/);
   if (dashed) {
     const found = asDay(dashed[1], dashed[2], dashed[3]);
     if (found) return found;
   }
-  const chinese = text.match(/(20\d{2})年(\d{1,2})月(\d{1,2})日/);
+  const chinese = text.match(/(?:^|[^\d])(20\d{2})年(\d{1,2})月(\d{1,2})日/);
   if (chinese) {
     const found = asDay(chinese[1], chinese[2], chinese[3]);
     if (found) return found;
   }
-  const day = text.match(/(20\d{2})(\d{2})(\d{2})/);
+  const day = text.match(/(?:^|[^\d])(20\d{2})(\d{2})(\d{2})(?!\d)/);
   if (day) {
     const found = asDay(day[1], day[2], day[3]);
     if (found) return found;
   }
-  const year = text.match(/20\d{2}/);
-  if (year) return { iso: `${year[0]}-12-31`, precision: "year" };
+  const year = text.match(/(?:^|[^\d])(20\d{2})(?!\d)/);
+  if (year) return { iso: `${year[1]}-12-31`, precision: "year" };
   return null;
 }
 

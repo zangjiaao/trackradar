@@ -4,10 +4,29 @@ import { extractItemDate, withinLookback } from "@/lib/source-window";
 /** 低于这个分数的候选不进入政策清单。 */
 export const RELEVANCE_THRESHOLD = 50;
 
-/** 每个信源本轮最多采集这么多条，避免正文抓取撑满 Worker 时间。 */
-export const COLLECT_PER_SOURCE = 4;
+/**
+ * 每个信源本轮最多读这么多篇正文。
+ * 同试点的申报、验收公示、入库备案优先占名额，避免较新的体检、租车公告把它们挤掉。
+ */
+export const COLLECT_PER_SOURCE = 8;
 
-export type ListNotice = { title: string; url: string };
+const PILOT_THREAD = /数字化转型|数字化改造|通过验收|入库备案|补充入库/;
+
+export type ListNotice = { title: string; url: string; publishedAt?: string | null };
+
+/** 同一数字化转型试点里会连续出现的申报、验收和备案。只用于正文名额，不代替模型判断。 */
+export function isPilotThreadTitle(title: string): boolean {
+  return PILOT_THREAD.test(title);
+}
+
+/** 名额不够时先留同试点材料，其余再按已排好的新旧补足。 */
+export function selectCollectBatch<T extends { title: string }>(items: T[], limit = COLLECT_PER_SOURCE): T[] {
+  if (limit <= 0) return [];
+  if (items.length <= limit) return items;
+  const thread = items.filter((item) => isPilotThreadTitle(item.title));
+  const rest = items.filter((item) => !isPilotThreadTitle(item.title));
+  return [...thread, ...rest].slice(0, limit);
+}
 
 export type EligibleNotice = ListNotice & { publishedAt: string | null };
 
@@ -59,7 +78,8 @@ export function partitionListItems(
       droppedHardware += 1;
       return;
     }
-    const found = extractItemDate(title, url);
+    const explicit = item.publishedAt?.trim() ?? "";
+    const found = explicit ? extractItemDate(explicit, "") : extractItemDate(title, url);
     if (!withinLookback(found, lookbackDays, now)) {
       droppedOld += 1;
       return;

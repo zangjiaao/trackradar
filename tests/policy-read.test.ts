@@ -41,6 +41,7 @@ test("默认提示词要求解读政策并过滤过宽口径", () => {
   assert.match(PROMPT_V1, /相关性分/);
   assert.match(PROMPT_V1, /确定方向和 demo/);
   assert.match(PROMPT_V1, /不用套话写入政策页/);
+  assert.match(PROMPT_V1, /不要仅因是名单公示就丢掉/);
   assert.match(ASSESS_INSTRUCTIONS, /顺口/);
   assert.match(ASSESS_INSTRUCTIONS, /reading 留空/);
   assert.match(TOOL_ADDENDUM, /采集、评了、低分过滤、解读写入/);

@@ -254,7 +254,7 @@ export async function fetchSourcePreview(sourceId: string, save: boolean) {
     .bind(sourceId)
     .first<SourceRow>();
   if (!source) throw new Error("找不到该信源。");
-  const fetched = await fetchPolicyList(source.list_url);
+  const fetched = await fetchPolicyList(source.list_url, { lookbackDays: 365 });
   const dictionaries = await loadTrackDictionaries();
   const started = new Date().toISOString();
   let saved = 0;
@@ -306,7 +306,7 @@ export async function searchSources(input: { region?: string; keyword?: string; 
   const previews = [];
   if (input.fetch) {
     for (const source of matched.filter((item) => item.enabled).slice(0, 2)) {
-      const fetched = await fetchPolicyList(source.list_url);
+      const fetched = await fetchPolicyList(source.list_url, { lookbackDays: 365 });
       previews.push({
         source_id: source.id,
         name: source.name,

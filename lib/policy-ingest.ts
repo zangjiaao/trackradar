@@ -2,11 +2,12 @@ import { fetchPolicyArticle } from "@/lib/fetch-article";
 import { exclusionNote, matchTrackWords, type TrackDictionary } from "@/lib/guess";
 import { sortTrackCodes, writeLeadTracks } from "@/lib/lead-tracks";
 import { publishedDay } from "@/lib/lead-presentation";
-import { acceptPolicyAssessment, isTemplateReading, type PolicyAssessment } from "@/lib/policy-assess";
+import { acceptPolicyAssessment, isTemplateReading, leadNeedsAgentReading, type PolicyAssessment } from "@/lib/policy-assess";
 import {
   COLLECT_PER_SOURCE,
   focusArticleText,
   partitionListItems,
+  selectCollectBatch,
   type EligibleNotice,
   type ListNotice,
   type ScanTally,
@@ -65,7 +66,7 @@ export async function ingestPolicyList(input: {
     }
     fresh.push(item);
   }
-  const selected = fresh.slice(0, limit);
+  const selected = selectCollectBatch(fresh, limit);
   tally.budgetSkipped = fresh.length - selected.length;
 
   const stored: StoredCandidate[] = [];
@@ -113,6 +114,10 @@ export async function ingestPolicyList(input: {
     await setStage(input.database, item.id, "scored", score, reason, null);
     if (!acceptPolicyAssessment(agent)) {
       await setStage(input.database, item.id, "dropped", score, reason || "与工作室无关，或没有可用解读。", null);
+      const existing = await policyLeadReading(input.database, item.url);
+      if (existing && leadNeedsAgentReading(existing)) {
+        await removeUnreadableLead(input.database, existing.id, item.url, reason || "与工作室无关，或没有可用解读。");
+      }
       tally.filtered += 1;
       continue;
     }
@@ -129,14 +134,44 @@ function resolveMode(batch: AssessBatch): ScoreMode {
   return batch.mode;
 }
 
+type LeadReading = {
+  id: string;
+  kind: string | null;
+  summary: string | null;
+  opportunity_note: string | null;
+  studio_angle: string | null;
+};
+
+async function policyLeadReading(database: D1Database, url: string): Promise<LeadReading | null> {
+  return database
+    .prepare("SELECT id, kind, summary, opportunity_note, studio_angle FROM leads WHERE url = ?")
+    .bind(url)
+    .first<LeadReading>();
+}
+
 async function alreadySettled(database: D1Database, url: string): Promise<boolean> {
-  const lead = await database.prepare("SELECT id FROM leads WHERE url = ?").bind(url).first<{ id: string }>();
-  if (lead) return true;
+  const lead = await policyLeadReading(database, url);
+  if (lead && (lead.kind === "case" || !leadNeedsAgentReading(lead))) return true;
+  if (lead) return false;
   const candidate = await database
     .prepare("SELECT stage FROM policy_candidates WHERE url = ?")
     .bind(url)
     .first<{ stage: string }>();
   return candidate?.stage === "interpreted";
+}
+
+async function removeUnreadableLead(database: D1Database, leadId: string, url: string, reason: string): Promise<void> {
+  const now = new Date().toISOString();
+  await database
+    .prepare(
+      `UPDATE policy_candidates
+       SET stage = 'dropped', lead_id = NULL, relevance_reason = ?, updated_at = ?
+       WHERE url = ? OR lead_id = ?`,
+    )
+    .bind(reason, now, url, leadId)
+    .run();
+  await database.prepare("DELETE FROM lead_tracks WHERE lead_id = ?").bind(leadId).run();
+  await database.prepare("DELETE FROM leads WHERE id = ?").bind(leadId).run();
 }
 
 async function upsertRaw(
@@ -212,9 +247,33 @@ async function saveInterpretedLead(
   const primary = tracks[0] ?? null;
   const scores = skeletonScores(item.title, primary);
   const existing = await database.prepare("SELECT id FROM leads WHERE url = ?").bind(item.url).first<{ id: string }>();
-  if (existing) return existing.id;
-  const id = crypto.randomUUID();
   const publishedAt = item.publishedAt || publishedDay(item.title, item.url);
+  if (existing) {
+    await database
+      .prepare(
+        `UPDATE leads
+         SET summary = ?, opportunity_note = ?, studio_angle = ?,
+             subsidy_note = ?, participation_note = ?, who_can_apply = ?, contact_note = ?, window_note = ?,
+             published_at = COALESCE(?, published_at)
+         WHERE id = ?`,
+      )
+      .bind(
+        reading,
+        reading,
+        reading,
+        optionalFact(assessment.subsidy),
+        optionalFact(assessment.participation),
+        optionalFact(assessment.threshold),
+        optionalFact(assessment.contact),
+        optionalFact(assessment.window),
+        publishedAt,
+        existing.id,
+      )
+      .run();
+    await writeLeadTracks(database, existing.id, tracks);
+    return existing.id;
+  }
+  const id = crypto.randomUUID();
   await database
     .prepare(
       `INSERT INTO leads (
