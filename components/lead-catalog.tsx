@@ -76,7 +76,7 @@ export async function LeadCatalog({
         ) : (
           <div className="opportunity-cards">
             {ordered.map((lead) =>
-              kind === "case" ? <CaseCard key={lead.id} lead={lead} names={names} /> : <OpportunityCard key={lead.id} lead={lead} names={names} />,
+              kind === "case" ? <CaseCard key={lead.id} lead={lead} names={names} /> : <OpportunityCard key={lead.id} lead={lead} />,
             )}
           </div>
         )}

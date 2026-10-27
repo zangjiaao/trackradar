@@ -66,6 +66,35 @@
   font-size: 1.125rem;
 }
 
+.policy-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.policy-reading {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.65;
+}
+
+.policy-score {
+  flex: none;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  text-align: end;
+}
+
+.policy-title {
+  text-underline-offset: 3px;
+}
+
+.policy-meta {
+  line-height: 1.4;
+}
+
 .score-details {
   font-size: 0.875rem;
 }
