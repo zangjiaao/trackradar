@@ -40,6 +40,8 @@ npx wrangler secret put OPENAI_API_KEY
 npm run deploy
 ```
 
+`wrangler.jsonc` 里 `workers_dev` 和 `preview_urls` 都是 `false`。合入并重新部署后，`trackradar.<subdomain>.workers.dev` 以及 Preview/Version 的 `*.workers.dev` 会关掉。只在仪表盘里 Disable 不够，下次 deploy 仍可能把 `workers.dev` 重新打开。
+
 ## 环境变量
 
 写在 `.dev.vars`，不要写进仓库。
