@@ -26,7 +26,7 @@ export default async function TasksPage() {
           <VStack gap={3}>
             <Heading level={2}>添加定时任务</Heading>
             <Text type="supporting" as="p">
-              周期对应 Worker 里已有的两条 Cron：每天 10:00，或每周一 09:00（北京时间）。执行时先采集标题、发表时间、出处和正文。有模型时读正文判断并写一段解读，无关的不进政策页。没有密钥时不写入政策页。执行记录写采集、评了、低分过滤、解读写入。信源开关在{" "}
+              周期对应 Worker 里已有的两条 Cron：每天 10:00，或每周一 09:00（北京时间）。执行时先采集标题、发表时间、出处、正文和 PDF 附件。有模型时按政府在用、在采的产品写一段解读，方便定 demo；无关的不进政策页。没有密钥时不写入政策页。执行记录写采集、评了、低分过滤、解读写入。信源开关在{" "}
               <Link href="/settings#sources">配置</Link>。
             </Text>
             <TaskForm />

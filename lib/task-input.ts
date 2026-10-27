@@ -9,7 +9,7 @@ export type TaskInput = {
   enabled: boolean;
 };
 
-export const DEFAULT_INSTRUCTION = "到已配置信源回看约一年：先采集标题、发表时间、出处和正文。有模型时读正文判断是否与工作室有关，并写一段解读；无关的不进入政策页。没有密钥时不写入政策页。";
+export const DEFAULT_INSTRUCTION = "到已配置信源回看约一年：先采集正文和 PDF 附件。有模型时按政府在用、在采的产品写一段解读，方便定 demo；无关的不进入政策页。没有密钥时不写入政策页。";
 
 export function parseTaskInput(body: Record<string, unknown>, partial = false): TaskInput {
   const name = typeof body.name === "string" ? body.name.trim().slice(0, 40) : "";

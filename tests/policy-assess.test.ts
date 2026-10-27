@@ -42,6 +42,22 @@ test("评估提示要求低相关新闻留空解读", () => {
   assert.match(ASSESS_INSTRUCTIONS, /体检、租车/);
   assert.match(ASSESS_INSTRUCTIONS, /【附件摘录】/);
   assert.match(ASSESS_INSTRUCTIONS, /不要仅因点到硬件类别就打到 50 分以下/);
+  assert.match(ASSESS_INSTRUCTIONS, /政府已经采纳/);
+  assert.match(ASSESS_INSTRUCTIONS, /不只是多收补贴通知/);
+  assert.match(ASSESS_INSTRUCTIONS, /产品条目为情报主体/);
+  assert.match(ASSESS_INSTRUCTIONS, /政府侧产品/);
+  assert.match(ASSESS_INSTRUCTIONS, /政府在推什么、谁在做/);
+  assert.match(ASSESS_INSTRUCTIONS, /不要写成奖补摘要/);
+});
+
+test("目录产品条目写成的一段解读可以入库", () => {
+  assert.equal(
+    acceptPolicyAssessment({
+      score: 76,
+      reading: "目录里有企业知识库 LiveKnowledge 和数字员工 LiveStaff，可对政府侧知识库和数字员工场景定 demo。",
+    }),
+    true,
+  );
 });
 
 test("只有占位摘要的政策还可以再交给模型，已有解读的不再占名额", () => {

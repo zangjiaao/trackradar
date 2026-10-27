@@ -65,7 +65,8 @@ export function listPdfAttachments(html: string, pageUrl: string): string[] {
 }
 
 /**
- * 附件太长时优先留下人工智能、软件、智能体、知识库相关片段。
+ * 附件太长时优先留下人工智能、软件、智能体、知识库附近的产品条目。
+ * 窗口要盖住条目名称和一句场景，目录类通知靠这些条目定 demo。
  * 验收公示这类名单通常没有这些词，就保留开头，避免抽完变成空的。
  */
 export function excerptAttachmentText(raw: string, limit: number): string {
@@ -77,8 +78,8 @@ export function excerptAttachmentText(raw: string, limit: number): string {
   const pattern = new RegExp(RELEVANT.source, "gi");
   for (let match = pattern.exec(text); match; match = pattern.exec(text)) {
     windows.push({
-      start: Math.max(0, match.index - 24),
-      end: Math.min(text.length, match.index + match[0].length + 96),
+      start: Math.max(0, match.index - 48),
+      end: Math.min(text.length, match.index + match[0].length + 180),
     });
     if (match.index === pattern.lastIndex) pattern.lastIndex += 1;
   }

@@ -43,7 +43,7 @@ export function ScanSourcesButton() {
         <Link href="/">政策</Link>
       </HStack>
       <Text type="supporting" as="p">
-        先采集标题、时间和正文。有模型时读正文判断并写一段解读，无关的不进政策页。没有密钥时不写入政策页。
+        先采集标题、时间和正文，通知页的 PDF 附件会抽进正文。有模型时按政府在用、在采的产品写一段解读，方便定 demo；无关的不进政策页。没有密钥时不写入政策页。
       </Text>
       {message ? (
         <Text type="supporting" as="p">

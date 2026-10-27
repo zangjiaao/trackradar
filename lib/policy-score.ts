@@ -12,12 +12,16 @@ const assessmentSchema = z.object({
       url: z.string(),
       score: z.number(),
       reason: z.string(),
-      reading: z.string(),
-      subsidy: z.string(),
-      participation: z.string(),
-      threshold: z.string(),
-      contact: z.string(),
-      window: z.string(),
+      reading: z
+        .string()
+        .describe(
+          "一段中文，给政策卡片。目录以附件产品条目为主体，点出对得上的政府侧产品和场景，便于定 demo。验收公示写政府在推什么、谁在做。不要写成奖补摘要。",
+        ),
+      subsidy: z.string().describe("正文写明的奖补，没有则空字符串。不要写进 reading。"),
+      participation: z.string().describe("正文写明的参与路径，没有则空字符串。留给对话。"),
+      threshold: z.string().describe("正文写明的门槛，没有则空字符串。留给对话。"),
+      contact: z.string().describe("正文写明的联络人，没有则空字符串。不要编造。"),
+      window: z.string().describe("正文写明的时间窗口，没有则空字符串。"),
     }),
   ),
 });
