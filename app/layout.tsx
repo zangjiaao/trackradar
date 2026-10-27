@@ -10,8 +10,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="zh-CN">
-      <body>
+    // 浏览器扩展会改这些节点上的属性（例如沉浸式翻译的 data-immersive-translate-page-theme）。
+    // suppressHydrationWarning 只忽略这一层的属性差异，不改变渲染结果。
+    <html lang="zh-CN" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <Providers>
           <AppFrame>{children}</AppFrame>
         </Providers>

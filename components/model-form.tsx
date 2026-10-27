@@ -46,9 +46,13 @@ export function ModelForm({ initial }: { initial: PublicModelConfig }) {
           ? `${initial.keyHint}。模型 ${initial.model}${initial.baseURL ? `，网关 ${initial.baseURL}` : ""}。`
           : "还没有密钥。填在这里会写入本地数据库，不会回显完整密钥。"}
       </Text>
+      {/* API Key 不是登录密码。这些属性尽量让 LastPass / 1Password 不要往输入框里插节点。 */}
       <TextInput
         label="API Key"
         type="password"
+        autoComplete="off"
+        data-lpignore="true"
+        data-1p-ignore="true"
         value={apiKey}
         onChange={setApiKey}
         placeholder={initial.from === "settings" ? "留空则不修改" : "sk-…"}
