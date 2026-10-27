@@ -1,0 +1,56 @@
+import { RELEVANCE_THRESHOLD } from "@/lib/policy-collect";
+
+const TEMPLATE_SENTENCE =
+  /^(做这个场景里的软件助手，用来接交付|做知识库入库和文档问答，用来接知识治理的单|准备材料进入人工智能服务商资源池，取得后续被点选的资格|帮企业把模型券或算力券落到可验收的软件场景，并准备申报材料。?不做算力硬件|通知里有人工智能或大模型场景，可以用智能体或知识库交付其中的软件部分|按通知里的软件或数改要求，用智能体、知识库或 FDE 交付能验收的部分)[。！？]?$/;
+
+const REGION_ONLY = /^地域是[\u4e00-\u9fa5A-Za-z0-9（）()]{1,16}[。！？]?$/;
+
+export const ASSESS_INSTRUCTIONS = [
+  "你阅读已经采集的政策正文，判断它值不值得进入工作室的政策清单，并在值得时写一段解读。",
+  "工作室做智能体、知识库、FDE，以及软件向的人工智能和数字化改造。不做汽车、机器人、具身智能硬件、芯片、服务器制造。",
+  "无关、只有中小企业、园区、政务、入库这类过宽口径，或新闻里只是顺口提到大模型、人工智能、软件，都打到 50 分以下，reading 留空。",
+  "例如环卫慰问、节庆或会议新闻只顺口出现「大模型」，不是可接的软件或数改政策，应低分并留空解读，不要写入政策页。",
+  "50 分及以上且确实有关时，reading 写一段中文，说清这条政策是什么、对工作室有什么用。不要写小标题，不要用「做这个场景里的软件助手」或「地域是某地」这类套话。",
+  "subsidy、participation、threshold、contact、window 只有正文写明才填，没有就空字符串。不要编造联络人、电话和金额。",
+  "结合正文判断，不要只看标题。items 必须覆盖每条 url，url 原样复制。",
+].join("\n");
+
+export type PolicyAssessment = {
+  score: number;
+  reason: string;
+  reading: string;
+  subsidy: string;
+  participation: string;
+  threshold: string;
+  contact: string;
+  window: string;
+};
+
+function splitSentences(text: string): string[] {
+  const compact = text.replace(/\s+/g, " ").trim();
+  if (!compact) return [];
+  return compact
+    .split(/(?<=[。！？])/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+/** 本地套话或「地域是某地」整句。不能当政策卡片的解读。 */
+export function isTemplateSentence(sentence: string): boolean {
+  const text = sentence.trim();
+  return Boolean(text) && (TEMPLATE_SENTENCE.test(text) || REGION_ONLY.test(text));
+}
+
+/** 整段都是套话时，不能入库，也不能显示在卡片上。 */
+export function isTemplateReading(text: string | null | undefined): boolean {
+  const parts = splitSentences(text ?? "");
+  return parts.length === 0 || parts.every((part) => isTemplateSentence(part));
+}
+
+/** 只有模型给出的、高于阈值的一段解读才能写入政策页。 */
+export function acceptPolicyAssessment(input: { score: number; reading: string | null | undefined }): boolean {
+  const reading = input.reading?.replace(/\s+/g, " ").trim() ?? "";
+  if (!reading || isTemplateReading(reading)) return false;
+  if (!Number.isFinite(input.score) || input.score < RELEVANCE_THRESHOLD) return false;
+  return true;
+}

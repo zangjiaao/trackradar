@@ -1,10 +1,8 @@
 import { formatValueScore } from "@/lib/lead-presentation";
+import { isTemplateSentence } from "@/lib/policy-assess";
 
-/** 卡片上不展示的占位句和套话。分字段仍留在库里给对话用。 */
+/** 卡片上不展示的占位句。分字段仍留在库里给对话用。 */
 const NOISE = /与\s*T\d{2}|映射\s*T\d{2}|做个?\s*demo|demo 或申报|分数是价值分|分数是骨架分|信源回看约|列表页骨架|种子线索|启发式/;
-
-const TEMPLATE_SENTENCE =
-  /^(通知里有人工智能或大模型场景，可以用智能体或知识库交付其中的软件部分|按通知里的软件或数改要求，用智能体、知识库或 FDE 交付能验收的部分)[。！？]?$/;
 
 export type PolicyCardCopy = {
   title: string;
@@ -29,7 +27,7 @@ function splitSentences(text: string): string[] {
 }
 
 function keepSentence(sentence: string): boolean {
-  if (!sentence || NOISE.test(sentence) || TEMPLATE_SENTENCE.test(sentence)) return false;
+  if (!sentence || NOISE.test(sentence) || isTemplateSentence(sentence)) return false;
   if (/^地域是[\u4e00-\u9fa5A-Za-z0-9（）()]{1,16}[。！？]?$/.test(sentence)) return false;
   return true;
 }

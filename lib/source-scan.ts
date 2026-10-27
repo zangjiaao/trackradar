@@ -142,7 +142,7 @@ export async function runSourceScan(database: D1Database, request: ScanRequest):
 
   const who = request.taskName ? `${triggerLabel(request.trigger)}「${request.taskName}」` : triggerLabel(request.trigger);
   const summary = sources.length
-    ? `${who}｜回看 ${lookbackDays} 天｜访问 ${details.length} 个信源｜采集 ${collectedTotal}，评了 ${scoredTotal}，低分过滤 ${filteredTotal}，解读写入 ${savedTotal}。候选先入库，再按工作室画像评分，低于阈值的不进入政策清单。只解读留下的政策，供政策页和对话复用。`
+    ? `${who}｜回看 ${lookbackDays} 天｜访问 ${details.length} 个信源｜采集 ${collectedTotal}，评了 ${scoredTotal}，低分过滤 ${filteredTotal}，解读写入 ${savedTotal}。候选先入库。有模型时读正文判断是否与工作室有关，并写一段解读；无关的不进入政策页。没有模型时不写入政策页。`
     : `${who}｜没有可访问的启用信源${hints.length ? `（地域：${hints.join("、")}）` : ""}。先到配置里打开信源。`;
   const status = sources.length === 0 ? "skipped" : details.some((item) => item.status === "done") ? "done" : details.every((item) => item.status === "skipped") ? "skipped" : "failed";
   await insertJob(database, { kind: "task_run", status, message: summary, taskId: request.taskId });

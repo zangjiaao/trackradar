@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { ASSESS_INSTRUCTIONS } from "../lib/policy-assess.ts";
 import { readPolicy } from "../lib/policy-read.ts";
 import { PROMPT_V1, TOOL_ADDENDUM } from "../lib/prompt.ts";
 
@@ -39,6 +40,9 @@ test("默认提示词要求解读政策并过滤过宽口径", () => {
   assert.match(PROMPT_V1, /回看分四步/);
   assert.match(PROMPT_V1, /相关性分/);
   assert.match(PROMPT_V1, /确定方向和 demo/);
+  assert.match(PROMPT_V1, /不用套话写入政策页/);
+  assert.match(ASSESS_INSTRUCTIONS, /顺口/);
+  assert.match(ASSESS_INSTRUCTIONS, /reading 留空/);
   assert.match(TOOL_ADDENDUM, /采集、评了、低分过滤、解读写入/);
   assert.match(TOOL_ADDENDUM, /相关性分/);
 });

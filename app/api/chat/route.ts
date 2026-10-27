@@ -122,7 +122,7 @@ export async function POST(request: Request) {
       }),
       scan_sources: tool({
         description:
-          "到已启用的政策信源回看大约一年。四步：采集标题、发表时间、出处和正文入库；逐条评分；低分过滤；只解读留下的政策。留下的条目可供 list_leads 复用。不翻全站。执行过程记在任务页。",
+          "到已启用的政策信源回看大约一年。先采集标题、时间和正文。有模型时读正文判断是否与工作室有关，并写一段解读；无关的不进政策页。没有密钥时不写入政策页。不翻全站。执行过程记在任务页。",
         inputSchema: z.object({
           lookback_days: z.number().int().min(30).max(800).optional().describe("回看天数，默认 365"),
           region: z.string().optional().describe("只看某个地域，如上海、北京"),

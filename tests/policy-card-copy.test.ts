@@ -34,6 +34,11 @@ test("卡片只显示一段工作室解读，不拼福利、参与、门槛和�
   assert.equal(reading, "帮西安制造业中小企业做第五批数改里的软件开发，并协助准备奖补申报。");
 });
 
+test("本地套话不进卡片", () => {
+  assert.equal(policyCardReading(lead({ studio_angle: "做这个场景里的软件助手，用来接交付。" })), null);
+  assert.equal(policyCardReading(lead({ summary: "地域是上海。", subsidy_note: "地域是上海。" })), null);
+});
+
 test("模板句和占位摘要不进卡片", () => {
   assert.equal(
     policyCardReading(

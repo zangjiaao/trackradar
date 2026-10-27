@@ -40,7 +40,7 @@ export function TaskForm() {
         setMessage(body.error ?? "添加失败");
         return;
       }
-      setMessage("任务已添加。到点会采集、评分、过滤后再解读，写入政策页，并留给对话复用。");
+      setMessage("任务已添加。到点会采集正文。有模型时判断并写解读，没有密钥时不写入政策页。");
       router.refresh();
     } finally {
       setPending(false);

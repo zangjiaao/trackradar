@@ -13,20 +13,19 @@ export function RereadButton() {
 
   async function run() {
     setPending(true);
-    setMessage("正在打开原文，补机会、福利、路径、门槛和联络人。");
+    setMessage("正在请模型读正文，重写解读。");
     try {
       const response = await fetch("/api/opportunities/reread", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ limit: 8 }),
       });
-      const body = (await response.json()) as { updated?: number; error?: string };
+      const body = (await response.json()) as { message?: string; error?: string };
       if (!response.ok) {
         setMessage(body.error ?? "重新解读失败");
         return;
       }
-      const updated = body.updated ?? 0;
-      setMessage(updated > 0 ? `已按正文重写 ${updated} 条。` : "这次没有读到可以重写的正文。");
+      setMessage(body.message ?? "重新解读结束。");
       router.refresh();
     } finally {
       setPending(false);

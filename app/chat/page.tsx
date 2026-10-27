@@ -12,7 +12,7 @@ export default function ChatPage() {
       <VStack gap={1}>
         <Heading level={1}>商机研究助手</Heading>
         <Text type="supporting" as="p">
-          先在配置里放好模型和信源。没有模型密钥时，拉取仍按本地规则筛选，对话本身不会请求模型。
+          先在配置里放好模型和信源。没有模型密钥时，拉取只采集候选，不把套话写入政策页。对话本身不会请求模型。
         </Text>
         <Text type="supporting" as="p">
           可让我对照政策与案例，给出我们现在做什么有助于发展的建议。

@@ -1,22 +1,18 @@
 import { fetchPolicyArticle } from "@/lib/fetch-article";
-import type { TrackDictionary } from "@/lib/guess";
-import { writeLeadTracks } from "@/lib/lead-tracks";
+import { exclusionNote, matchTrackWords, type TrackDictionary } from "@/lib/guess";
+import { sortTrackCodes, writeLeadTracks } from "@/lib/lead-tracks";
 import { publishedDay } from "@/lib/lead-presentation";
-import { fallbackStudioAngle, extractNoticeFacts } from "@/lib/notice-facts";
+import { acceptPolicyAssessment, isTemplateReading, type PolicyAssessment } from "@/lib/policy-assess";
 import {
   COLLECT_PER_SOURCE,
-  RELEVANCE_THRESHOLD,
-  clampRelevance,
   focusArticleText,
-  localRelevance,
   partitionListItems,
   type EligibleNotice,
   type ListNotice,
   type ScanTally,
   type ScoreMode,
 } from "@/lib/policy-collect";
-import { readPolicy } from "@/lib/policy-read";
-import { scoreCandidatesWithAgent, type ScoreBatch, type ScoreInput } from "@/lib/policy-score";
+import { assessCandidatesWithAgent, type AssessBatch, type ScoreInput } from "@/lib/policy-score";
 import { skeletonScores } from "@/lib/scoring";
 
 const BODY_RESERVE_MS = 8_000;
@@ -37,7 +33,7 @@ export async function ingestPolicyList(input: {
   limit?: number;
   origin?: "agent" | "crawl";
   fetchArticle?: typeof fetchPolicyArticle;
-  scoreBatch?: (items: ScoreInput[]) => Promise<ScoreBatch>;
+  scoreBatch?: (items: ScoreInput[]) => Promise<AssessBatch>;
 }): Promise<ScanTally> {
   const now = input.now ?? new Date();
   const dictionaries = input.dictionaries;
@@ -45,7 +41,7 @@ export async function ingestPolicyList(input: {
   const limit = input.limit ?? COLLECT_PER_SOURCE;
   const origin = input.origin ?? "agent";
   const fetchArticle = input.fetchArticle ?? fetchPolicyArticle;
-  const scoreBatch = input.scoreBatch ?? scoreCandidatesWithAgent;
+  const scoreBatch = input.scoreBatch ?? assessCandidatesWithAgent;
   const partitioned = partitionListItems(input.items, input.lookbackDays, now);
   const tally: ScanTally = {
     collected: 0,
@@ -100,29 +96,35 @@ export async function ingestPolicyList(input: {
     })),
   );
   tally.scorer = resolveMode(batch);
+  if (tally.scorer !== "agent") return tally;
 
   for (const item of stored) {
     const text = item.body ? `${item.title}\n${item.body}` : item.title;
-    const local = localRelevance(text, dictionaries);
-    const agent = batch.mode === "agent" ? batch.byUrl.get(item.url) : undefined;
-    const score = clampRelevance(agent?.score ?? local.score);
-    const reason = (agent?.reason ?? local.reason).slice(0, 180);
+    const agent = batch.byUrl.get(item.url);
+    if (!agent) continue;
+    const score = agent.score;
+    const reason = agent.reason.slice(0, 180);
     tally.scored += 1;
+    if (exclusionNote(text)) {
+      await setStage(input.database, item.id, "dropped", 0, "正文命中汽车、机器人、具身、芯片或服务器制造。", null);
+      tally.filtered += 1;
+      continue;
+    }
     await setStage(input.database, item.id, "scored", score, reason, null);
-    if (score < RELEVANCE_THRESHOLD) {
-      await setStage(input.database, item.id, "dropped", score, reason, null);
+    if (!acceptPolicyAssessment(agent)) {
+      await setStage(input.database, item.id, "dropped", score, reason || "与工作室无关，或没有可用解读。", null);
       tally.filtered += 1;
       continue;
     }
     await setStage(input.database, item.id, "kept", score, reason, null);
-    const leadId = await saveInterpretedLead(input.database, input.source, item, dictionaries, origin);
+    const leadId = await saveInterpretedLead(input.database, input.source, item, agent, dictionaries, origin);
     await setStage(input.database, item.id, "interpreted", score, reason, leadId);
     tally.interpreted += 1;
   }
   return tally;
 }
 
-function resolveMode(batch: ScoreBatch): ScoreMode {
+function resolveMode(batch: AssessBatch): ScoreMode {
   if (batch.mode === "agent" && batch.byUrl.size === 0) return "fallback";
   return batch.mode;
 }
@@ -190,24 +192,29 @@ async function setStage(
     .run();
 }
 
+function optionalFact(value: string): string | null {
+  const text = value.replace(/\s+/g, " ").trim();
+  if (!text || isTemplateReading(text)) return null;
+  return text.slice(0, 500);
+}
+
 async function saveInterpretedLead(
   database: D1Database,
   source: SourceRef,
   item: StoredCandidate,
+  assessment: PolicyAssessment,
   dictionaries: TrackDictionary[] | undefined,
   origin: "agent" | "crawl",
 ): Promise<string> {
   const text = item.body ? `${item.title}\n${item.body}` : item.title;
-  const reading = readPolicy(text, dictionaries);
-  const facts = extractNoticeFacts(text);
-  const angle = (reading.studioAngle || facts.studioAngle || fallbackStudioAngle(text) || angleFromStudioWords(text) || "").slice(0, 500);
-  const tracks = reading.tracks;
+  const reading = assessment.reading.replace(/\s+/g, " ").trim().slice(0, 500);
+  const tracks = sortTrackCodes(matchTrackWords(text, dictionaries).map((match) => match.code));
   const primary = tracks[0] ?? null;
   const scores = skeletonScores(item.title, primary);
   const existing = await database.prepare("SELECT id FROM leads WHERE url = ?").bind(item.url).first<{ id: string }>();
   if (existing) return existing.id;
   const id = crypto.randomUUID();
-  const publishedAt = item.publishedAt || facts.publishedAt || reading.publishedAt || publishedDay(item.title, item.url);
+  const publishedAt = item.publishedAt || publishedDay(item.title, item.url);
   await database
     .prepare(
       `INSERT INTO leads (
@@ -222,17 +229,17 @@ async function saveInterpretedLead(
       primary,
       item.title,
       item.url,
-      (facts.subsidyNote || reading.subsidyNote || "").slice(0, 500) || null,
-      reading.excerpt || null,
-      angle || null,
+      reading,
+      null,
+      reading,
       source.region,
       publishedAt,
-      angle || null,
-      facts.subsidyNote || reading.subsidyNote,
-      facts.participationNote || reading.participationNote,
-      facts.whoCanApply || reading.whoCanApply,
-      facts.contactNote || reading.contactNote,
-      facts.windowNote || reading.windowNote,
+      reading,
+      optionalFact(assessment.subsidy),
+      optionalFact(assessment.participation),
+      optionalFact(assessment.threshold),
+      optionalFact(assessment.contact),
+      optionalFact(assessment.window),
       scores.capability,
       scores.funding_window,
       scores.demand_density,
@@ -245,10 +252,4 @@ async function saveInterpretedLead(
     .run();
   await writeLeadTracks(database, id, tracks);
   return id;
-}
-
-function angleFromStudioWords(text: string): string {
-  if (/大模型|人工智能/.test(text)) return "通知里有人工智能或大模型场景，可以用智能体或知识库交付其中的软件部分。";
-  if (/软件|数字化|数改/.test(text)) return "按通知里的软件或数改要求，用智能体、知识库或 FDE 交付能验收的部分。";
-  return "";
 }

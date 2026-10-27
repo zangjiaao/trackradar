@@ -43,7 +43,7 @@ export function ScanSourcesButton() {
         <Link href="/">政策</Link>
       </HStack>
       <Text type="supporting" as="p">
-        先采集标题、时间和正文入库，再评分。低分不进政策页，只解读留下的。这些政策会留给对话确定方向。
+        先采集标题、时间和正文。有模型时读正文判断并写一段解读，无关的不进政策页。没有密钥时不写入政策页。
       </Text>
       {message ? (
         <Text type="supporting" as="p">

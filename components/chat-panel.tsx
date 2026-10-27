@@ -20,7 +20,7 @@ import { FORMAT_SAMPLE, MessageMarkdown } from "@/components/message-markdown";
 import { getBrowserChat, getChatDraft, getServerChatDraft, restoreBrowserChat, setChatDraft, subscribeChatDraft } from "@/components/chat-session";
 
 const SUGGESTIONS = [
-  "到已启用信源回看大约一年：先采集再评分，低分不进政策清单，只解读留下的，并保留每条原始链接。",
+  "到已启用信源回看大约一年：先采集正文，有模型时判断并写一段解读，无关的不进政策页，并保留每条原始链接。",
   "对照已有政策和案例，说说我们现在做什么有助于发展。",
   "我在猪八戒看到一条知识库需求，请写入案例。标题是企业知识库 RAG 搭建，链接 https://example.com/kb-zbj ，站点猪八戒，地域杭州，笔记是有人求购、预算面议。",
 ];

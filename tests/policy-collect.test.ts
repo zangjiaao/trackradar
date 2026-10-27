@@ -1,13 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  RELEVANCE_THRESHOLD,
-  focusArticleText,
-  formatScanSourceMessage,
-  localRelevance,
-  partitionListItems,
-  type ScanTally,
-} from "../lib/policy-collect.ts";
+import { focusArticleText, formatScanSourceMessage, partitionListItems, type ScanTally } from "../lib/policy-collect.ts";
 
 const now = new Date("2026-10-26T00:00:00Z");
 
@@ -50,18 +43,6 @@ test("较新的条目优先采集", () => {
   assert.equal(result.eligible[0]?.publishedAt, "2026-10-20");
 });
 
-test("本地评分：词典或工作室词过线，过宽和无关低于阈值", () => {
-  const mapped = localRelevance("关于开展中小企业数字化改造项目申报的通知");
-  const studioOnly = localRelevance("关于召开工作会议的通知\n支持企业采购软件，用于内部流程。");
-  const broad = localRelevance("关于组织开展绿色工业园区推荐工作的通知");
-  const empty = localRelevance("关于召开工作会议的通知");
-  assert.ok(mapped.score >= RELEVANCE_THRESHOLD);
-  assert.ok(studioOnly.score >= RELEVANCE_THRESHOLD);
-  assert.ok(broad.score < RELEVANCE_THRESHOLD);
-  assert.ok(empty.score < RELEVANCE_THRESHOLD);
-  assert.match(studioOnly.reason, /软件/);
-});
-
 test("正文从标题最后一次出现处截起", () => {
   const text = "政务公开 政务大厅 关于征集软件项目的通知 首页 关于征集软件项目的通知 支持企业采购软件。";
   const focused = focusArticleText("关于征集软件项目的通知", text);
@@ -86,6 +67,9 @@ test("执行记录写出四步计数，不再写未映射", () => {
   const message = formatScanSourceMessage("银川", "工信局", tally);
   assert.match(message, /采集 4，评了 4，低分过滤 3，解读写入 1/);
   assert.match(message, /列表 30，读正文 4，过期 2，硬件排除 0，预算未采 24/);
-  assert.match(message, /评分用 Agent/);
+  assert.match(message, /解读用 Agent/);
   assert.doesNotMatch(message, /未映射/);
+  const skipped = formatScanSourceMessage("银川", "门户", { ...tally, scored: 0, filtered: 0, interpreted: 0, scorer: "local" });
+  assert.match(skipped, /未配置模型，未写入政策/);
+  assert.doesNotMatch(skipped, /按本地规则评分/);
 });

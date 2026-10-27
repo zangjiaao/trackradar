@@ -1,5 +1,4 @@
-import { exclusionNote, type TrackDictionary } from "@/lib/guess";
-import { readPolicy } from "@/lib/policy-read";
+import { exclusionNote } from "@/lib/guess";
 import { extractItemDate, withinLookback } from "@/lib/source-window";
 
 /** 低于这个分数的候选不进入政策清单。 */
@@ -7,8 +6,6 @@ export const RELEVANCE_THRESHOLD = 50;
 
 /** 每个信源本轮最多采集这么多条，避免正文抓取撑满 Worker 时间。 */
 export const COLLECT_PER_SOURCE = 4;
-
-const STUDIO_WORDS = ["智能体", "知识库", "FDE", "数字化", "软件", "大模型", "RAG", "rag", "Agent", "agent", "数改"];
 
 export type ListNotice = { title: string; url: string };
 
@@ -85,34 +82,15 @@ export function partitionListItems(
   };
 }
 
-/** 本地相关性。词典命中最高；正文里的工作室词次之；过宽或无关低于阈值。 */
-export function localRelevance(text: string, dictionaries?: TrackDictionary[]): { score: number; reason: string } {
-  if (exclusionNote(text)) {
-    return { score: 0, reason: "正文命中汽车、机器人、具身、芯片或服务器制造，不进入政策清单。" };
-  }
-  const reading = readPolicy(text, dictionaries);
-  if (reading.keep) {
-    return { score: 74, reason: "标题或正文能对上赛道，且和工作室的软件交付有关。" };
-  }
-  const studio = STUDIO_WORDS.filter((word) => text.includes(word));
-  if (studio.length > 0) {
-    return { score: 62, reason: `出现${studio.slice(0, 3).join("、")}，赛道词典未命中，仍和工作室的智能体、知识库或软件数改有关。` };
-  }
-  if (reading.reason === "broad") {
-    return { score: 24, reason: "只有中小企业、园区、政务这类过宽口径，没有软件或智能体切口。" };
-  }
-  return { score: 12, reason: "标题和正文都看不出与智能体、知识库、FDE 或软件数改的关系。" };
-}
-
 export function clampRelevance(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
 function scorerLabel(scorer: ScoreMode): string {
-  if (scorer === "agent") return "评分用 Agent";
-  if (scorer === "fallback") return "模型未返回，改用本地规则";
-  return "未配置模型，按本地规则评分";
+  if (scorer === "agent") return "解读用 Agent";
+  if (scorer === "fallback") return "模型未返回，未写入政策";
+  return "未配置模型，未写入政策";
 }
 
 /** 执行记录：采集、评了、低分过滤、解读写入，并附上列表和预算。 */
@@ -125,7 +103,7 @@ export function formatScanSourceMessage(region: string, name: string, tally: Sca
     `硬件排除 ${tally.droppedHardware}`,
     `预算未采 ${tally.budgetSkipped}`,
     tally.duplicate ? `已有 ${tally.duplicate}` : "",
-    tally.scored > 0 ? scorerLabel(tally.scorer) : "",
+    tally.collected > 0 || tally.scored > 0 ? scorerLabel(tally.scorer) : "",
   ].filter(Boolean);
   return `${head}。${tail.join("，")}。`;
 }
