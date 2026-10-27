@@ -18,6 +18,14 @@
       "0 1 * * 1"
     ]
   },
+  // Browser Run（原 Browser Rendering）。对话工具 fetch_page_markdown 走绑定上的
+  // quickAction("markdown")，不保存 API Token。部署后使用本账号的 Browser Run。
+  // quickAction 在本地模拟里没有实现。要在 `npm run dev` 里实测，先 `npx wrangler login`，
+  // 再把下面的 remote 设为 true（只影响本地，会连真实浏览器并消耗 Free 计划额度）。
+  // 不要默认打开 remote：未登录时 `npm run dev` 会停在 OAuth，日常本地开发起不来。
+  "browser": {
+    "binding": "BROWSER"
+  },
   "d1_databases": [
     {
       "binding": "DB",

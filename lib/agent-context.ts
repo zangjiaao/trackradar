@@ -1,13 +1,14 @@
 import { cadenceLabel } from "@/lib/collect";
 import { leadBriefLine } from "@/lib/lead-brief";
 import { listLeads, listSources } from "@/lib/queries";
-import { readMaterialSites, readPublicModel } from "@/lib/settings";
+import { readMaterialSites, readPublicModel, readPublicTavily } from "@/lib/settings";
 import { listTasks } from "@/lib/tasks";
 
 /** 对话系统提示里附上的运行时快照：配置、最近政策和最近案例，不含密钥。 */
 export async function buildRuntimeContext(): Promise<string> {
-  const [model, sources, policies, cases, materialSites, tasks] = await Promise.all([
+  const [model, tavily, sources, policies, cases, materialSites, tasks] = await Promise.all([
     readPublicModel(),
+    readPublicTavily(),
     listSources(),
     listLeads(6, null, "policy"),
     listLeads(6, null, "case"),
@@ -19,6 +20,9 @@ export async function buildRuntimeContext(): Promise<string> {
   const lines = [
     "下面是这一轮请求开始时的配置、最近政策和最近案例。回答若依赖当前清单，按需要再调 list_leads。不依赖新鲜数据时不必调用。别把这里或会话里更早的工具结果当成全部现状。",
     `模型：${model.configured ? model.model : "未配置"}。${model.baseURL ? `网关 ${model.baseURL}。` : "未设置自定义 Base URL。"}`,
+    tavily.configured
+      ? "联网搜索：已配置。库内不够或用户要查网上公开信息时再用 web_search，不要把密钥写进回复。"
+      : "联网搜索：未配置。需要 web_search 时请用户到配置页填写 Tavily API Key，或在 .dev.vars 写入 TAVILY_API_KEY。",
     tasks.length
       ? `定时任务：${tasks
           .map((task) => `${task.enabled ? "启用" : "停用"}｜${task.name}｜${cadenceLabel(task.cadence)}｜回看 ${task.lookback_days} 天`)

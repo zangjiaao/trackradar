@@ -22,6 +22,8 @@ export const WORK_KIND_LABEL: Record<string, string> = {
   tool_list_tracks: "查看赛道",
   tool_list_leads: "查看机会",
   tool_search_sources: "查询信源",
+  tool_fetch_page_markdown: "打开原文",
+  tool_web_search: "联网搜索",
   tool_suggest_opportunity: "补全素材",
   manual_entry: "录入案例",
   tool_add_opportunity: "对话写入案例",

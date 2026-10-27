@@ -6,20 +6,22 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { DbFallback } from "@/components/db-fallback";
 import { MaterialSitesForm } from "@/components/material-sites-form";
 import { ModelForm } from "@/components/model-form";
+import { TavilyKeyForm } from "@/components/tavily-key-form";
 import { PageHeader } from "@/components/page-header";
 import { PromptEditor } from "@/components/prompt-editor";
 import { SourceList } from "@/components/source-list";
 import { TrackEditor } from "@/components/track-editor";
 import { WEIGHT_LABELS, WEIGHTS } from "@/lib/domain";
 import { listSources, listTracks, getActivePrompt } from "@/lib/queries";
-import { readMaterialSites, readPublicModel } from "@/lib/settings";
+import { readMaterialSites, readPublicModel, readPublicTavily } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   try {
-    const [model, sources, tracks, prompt, materialSites] = await Promise.all([
+    const [model, tavily, sources, tracks, prompt, materialSites] = await Promise.all([
       readPublicModel(),
+      readPublicTavily(),
       listSources(),
       listTracks(),
       getActivePrompt(),
@@ -29,12 +31,18 @@ export default async function SettingsPage() {
       <VStack gap={4} className="page-column">
         <PageHeader
           title="配置"
-          description="先配好模型、提示词和信源。对话和任务都会按这里的要求，到已启用信源回看并写入政策。定时任务在任务页，不在这里。"
+          description="先配好模型、联网搜索、提示词和信源。对话和任务都会按这里的要求，到已启用信源回看并写入政策。定时任务在任务页，不在这里。"
         />
         <Card>
           <VStack gap={3} id="model">
             <Heading level={2}>模型</Heading>
             <ModelForm initial={model} />
+          </VStack>
+        </Card>
+        <Card>
+          <VStack gap={3} id="search">
+            <Heading level={2}>联网搜索</Heading>
+            <TavilyKeyForm initial={tavily} />
           </VStack>
         </Card>
         <Card>

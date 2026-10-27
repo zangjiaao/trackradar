@@ -66,6 +66,9 @@ export function ModelForm({ initial }: { initial: PublicModelConfig }) {
         width="100%"
       />
       <TextInput label="Model" value={model} onChange={setModel} placeholder="gpt-4o-mini" width="100%" />
+      <Text type="supporting" as="p">
+        默认 gpt-4o-mini 没有推理通道，不需要为了「先想再答」改模型。若要让官方接口侧先思考，把 Model 换成 o3、o4-mini 或 gpt-5，Base URL 留空或填 https://api.openai.com/v1。其它网关不会附带 reasoning 参数，以免请求被拒。思考过程不会写进回复。
+      </Text>
       <HStack gap={2} wrap="wrap" vAlign="center">
         <Button label={pending ? "保存中" : "保存模型"} variant="primary" isDisabled={pending || model.trim().length === 0} onClick={() => void save(false)} />
         {initial.from === "settings" ? (
