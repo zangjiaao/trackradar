@@ -1,6 +1,7 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateObject } from "ai";
 import { z } from "zod";
+import { assessmentInputText } from "@/lib/article-attachments";
 import { ASSESS_INSTRUCTIONS, type PolicyAssessment } from "@/lib/policy-assess";
 import { clampRelevance, type ScoreMode } from "@/lib/policy-collect";
 import { readModelConfig } from "@/lib/settings";
@@ -59,7 +60,7 @@ export async function assessCandidatesWithAgent(items: ScoreInput[]): Promise<As
             `url: ${item.url}`,
             `出处: ${item.region} ${item.sourceName}`,
             `标题: ${item.title}`,
-            `正文: ${(item.body ?? "未读到正文").slice(0, 3200)}`,
+            `正文: ${assessmentInputText(item.body)}`,
           ].join("\n"),
         )
         .join("\n\n"),

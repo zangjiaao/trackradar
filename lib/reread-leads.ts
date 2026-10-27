@@ -1,6 +1,6 @@
+import { NOTICE_BODY_LIMIT, storedNoticeBody } from "@/lib/article-attachments";
 import { fetchPolicyArticle } from "@/lib/fetch-article";
 import { acceptPolicyAssessment, isTemplateReading } from "@/lib/policy-assess";
-import { focusArticleText } from "@/lib/policy-collect";
 import { assessCandidatesWithAgent } from "@/lib/policy-score";
 
 const RECENT = `SELECT id, title, url, origin, kind FROM leads
@@ -58,7 +58,7 @@ export async function rereadLeads(
       id: lead.id,
       title: lead.title,
       url: lead.url,
-      body: focusArticleText(lead.title, article.text).slice(0, 6000),
+      body: storedNoticeBody(lead.title, article.text, NOTICE_BODY_LIMIT),
     });
   }
   if (ready.length === 0) {

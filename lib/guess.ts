@@ -56,3 +56,17 @@ export function exclusionNote(text: string): string | null {
   if (!EXCLUDED.test(text)) return null;
   return "命中排除方向（汽车 / 机器人 / 具身 / 芯片 / 服务器制造），不映射赛道。";
 }
+
+/**
+ * 跨行业目录会在同一篇里点到汽车、机器人，同时列出知识库或智能体。
+ * 这种正文不再在模型判断之后整篇硬丢掉。标题里的排除词仍在采集前生效。
+ */
+export function deferHardwareExclusion(text: string): boolean {
+  return /知识库|智能体|数字员工|RAG/i.test(text);
+}
+
+/** 给赛道匹配用。混有硬件类别、但又写明知识库或智能体时，去掉排除词再匹配。 */
+export function textForTrackMatch(text: string): string {
+  if (!exclusionNote(text) || !deferHardwareExclusion(text)) return text;
+  return text.replace(/汽车|机器人|具身|芯片|服务器制造/g, " ");
+}

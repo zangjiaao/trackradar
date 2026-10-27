@@ -1,11 +1,11 @@
+import { NOTICE_BODY_LIMIT, storedNoticeBody } from "@/lib/article-attachments";
 import { fetchPolicyArticle } from "@/lib/fetch-article";
-import { exclusionNote, matchTrackWords, type TrackDictionary } from "@/lib/guess";
+import { deferHardwareExclusion, exclusionNote, matchTrackWords, textForTrackMatch, type TrackDictionary } from "@/lib/guess";
 import { sortTrackCodes, writeLeadTracks } from "@/lib/lead-tracks";
 import { publishedDay } from "@/lib/lead-presentation";
 import { acceptPolicyAssessment, isTemplateReading, leadNeedsAgentReading, type PolicyAssessment } from "@/lib/policy-assess";
 import {
   COLLECT_PER_SOURCE,
-  focusArticleText,
   partitionListItems,
   selectCollectBatch,
   type EligibleNotice,
@@ -17,7 +17,6 @@ import { assessCandidatesWithAgent, type AssessBatch, type ScoreInput } from "@/
 import { skeletonScores } from "@/lib/scoring";
 
 const BODY_RESERVE_MS = 8_000;
-const BODY_STORE_LIMIT = 6_000;
 
 type SourceRef = { id: string; region: string; name: string };
 
@@ -75,9 +74,9 @@ export async function ingestPolicyList(input: {
     let publishedAt = item.publishedAt;
     if (Date.now() < deadline - BODY_RESERVE_MS) {
       tally.bodyReads += 1;
-      const article = await fetchArticle(item.url);
+      const article = await fetchArticle(item.url, { deadline });
       if (article) {
-        body = focusArticleText(item.title, article.text).slice(0, BODY_STORE_LIMIT);
+        body = storedNoticeBody(item.title, article.text, NOTICE_BODY_LIMIT);
         if (article.publishedAt) publishedAt = article.publishedAt;
       }
     }
@@ -106,7 +105,7 @@ export async function ingestPolicyList(input: {
     const score = agent.score;
     const reason = agent.reason.slice(0, 180);
     tally.scored += 1;
-    if (exclusionNote(text)) {
+    if (exclusionNote(text) && !deferHardwareExclusion(text)) {
       await setStage(input.database, item.id, "dropped", 0, "正文命中汽车、机器人、具身、芯片或服务器制造。", null);
       tally.filtered += 1;
       continue;
@@ -243,7 +242,7 @@ async function saveInterpretedLead(
 ): Promise<string> {
   const text = item.body ? `${item.title}\n${item.body}` : item.title;
   const reading = assessment.reading.replace(/\s+/g, " ").trim().slice(0, 500);
-  const tracks = sortTrackCodes(matchTrackWords(text, dictionaries).map((match) => match.code));
+  const tracks = sortTrackCodes(matchTrackWords(textForTrackMatch(text), dictionaries).map((match) => match.code));
   const primary = tracks[0] ?? null;
   const scores = skeletonScores(item.title, primary);
   const existing = await database.prepare("SELECT id FROM leads WHERE url = ?").bind(item.url).first<{ id: string }>();

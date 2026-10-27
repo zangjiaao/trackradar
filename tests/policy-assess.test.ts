@@ -40,6 +40,8 @@ test("评估提示要求低相关新闻留空解读", () => {
   assert.match(ASSESS_INSTRUCTIONS, /验收公示/);
   assert.match(ASSESS_INSTRUCTIONS, /没有新的申报入口/);
   assert.match(ASSESS_INSTRUCTIONS, /体检、租车/);
+  assert.match(ASSESS_INSTRUCTIONS, /【附件摘录】/);
+  assert.match(ASSESS_INSTRUCTIONS, /不要仅因点到硬件类别就打到 50 分以下/);
 });
 
 test("只有占位摘要的政策还可以再交给模型，已有解读的不再占名额", () => {

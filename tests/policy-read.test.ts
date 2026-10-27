@@ -46,4 +46,5 @@ test("默认提示词要求解读政策并过滤过宽口径", () => {
   assert.match(ASSESS_INSTRUCTIONS, /reading 留空/);
   assert.match(TOOL_ADDENDUM, /采集、评了、低分过滤、解读写入/);
   assert.match(TOOL_ADDENDUM, /相关性分/);
+  assert.match(TOOL_ADDENDUM, /PDF 附件会抽进正文/);
 });
