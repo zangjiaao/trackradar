@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { lstatSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 const command = process.argv[2];
 const flags = {};
@@ -18,16 +19,15 @@ const path = command === "brief" ? "/api/radar/brief" : command === "lead" ? "/a
 if (!path) fail("命令是 brief 或 lead");
 
 const body = command === "brief" ? briefBody(flags) : { id: flags.id };
-const headers = { "content-type": "application/json", ...accessHeaders(origin) };
 const response = await fetch(new URL(path, origin), {
   method: "POST",
   redirect: "error",
-  headers,
+  headers: { "content-type": "application/json", authorization: `Bearer ${agentKey()}` },
   body: JSON.stringify(body),
   signal: AbortSignal.timeout(20000),
 }).catch((error) => {
   const message = error instanceof Error ? error.message : "没连上";
-  fail(message.includes("redirect") ? "赛道雷达跳到了登录页。把办公室现有的服务令牌加进赛道雷达的 Access 策略，动作选 Service Auth。" : message);
+  fail(message.includes("redirect") ? "赛道雷达跳到了登录页。安装页和读取接口需要在 Access 里放行，读取接口另要 Agent API Key。" : message);
 });
 
 const text = await response.text();
@@ -45,61 +45,20 @@ function briefBody(input) {
   return body;
 }
 
-function accessHeaders(origin) {
-  if (origin.startsWith("http://")) return {};
-  const token = serviceToken();
-  if (!token) fail("没有读到 Access 服务令牌。在办公室工作目录执行，令牌在上一级 .dev.vars 的 CF_ACCESS_CLIENT_ID 和 CF_ACCESS_CLIENT_SECRET。");
-  return token;
-}
-
-function serviceToken() {
-  const fromEnv = tokenPair(process.env.CF_ACCESS_CLIENT_ID, process.env.CF_ACCESS_CLIENT_SECRET);
-  if (fromEnv) return fromEnv;
-  let dir = process.cwd();
-  for (let i = 0; i < 4; i += 1) {
-    let text = "";
-    try {
-      text = readFileSync(resolve(dir, ".dev.vars"), "utf8");
-    } catch {
-      text = "";
-    }
-    if (text) {
-      const vars = devVars(text);
-      const pair = tokenPair(vars.CF_ACCESS_CLIENT_ID, vars.CF_ACCESS_CLIENT_SECRET);
-      if (pair) return pair;
-    }
-    const parent = resolve(dir, "..");
-    if (parent === dir) break;
-    dir = parent;
+function agentKey() {
+  const file = join(homedir(), ".config", "trackradar", "agent.key");
+  let info;
+  try {
+    info = lstatSync(file);
+  } catch {
+    fail("没有 Agent API Key。在赛道雷达配置页创建，写到 ~/.config/trackradar/agent.key，权限 600。不要把钥匙写进命令或对话。");
   }
-  return null;
-}
-
-function tokenPair(id, secret) {
-  const clientId = id?.trim() ?? "";
-  const clientSecret = secret?.trim() ?? "";
-  if (!clientId || !clientSecret) return null;
-  return { "CF-Access-Client-Id": clientId, "CF-Access-Client-Secret": clientSecret };
-}
-
-function devVars(text) {
-  const vars = {};
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq < 1) continue;
-    vars[trimmed.slice(0, eq).trim()] = unquote(trimmed.slice(eq + 1));
-  }
-  return vars;
-}
-
-function unquote(value) {
-  const trimmed = value.trim();
-  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
-    return trimmed.slice(1, -1).trim();
-  }
-  return trimmed;
+  if (!info.isFile() || info.isSymbolicLink()) fail("钥匙文件必须是普通文件。");
+  if (typeof process.getuid === "function" && info.uid !== process.getuid()) fail("钥匙文件必须属于当前用户。");
+  if (process.platform !== "win32" && (info.mode & 0o077) !== 0) fail("钥匙文件权限必须是 600。");
+  const key = readFileSync(file, "utf8").trim();
+  if (!/^trk_[A-Za-z0-9_-]{20,}$/.test(key)) fail("钥匙文件内容不对。");
+  return key;
 }
 
 function siteOrigin(value) {

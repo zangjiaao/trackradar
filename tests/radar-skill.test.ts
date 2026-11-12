@@ -16,10 +16,12 @@ test("安装说明告诉 Agent 装到技能目录，并且不要要授权链接"
   assert.match(client, /\/api\/radar\/brief/);
   assert.match(client, /\/api\/radar\/lead/);
   assert.match(client, /redirect: "error"/);
-  assert.match(client, /CF-Access-Client-Id/);
-  assert.match(client, /CF-Access-Client-Secret/);
-  assert.match(bootstrap, /Service Auth/);
-  assert.match(installed, /不要把这两个值写进命令/);
+  assert.match(client, /Bearer/);
+  assert.match(client, /agent\.key/);
+  assert.doesNotMatch(client, /ACCESS_PROXY/);
+  assert.match(bootstrap, /agent\.key/);
+  assert.match(installed, /不要自己 curl/);
+  assert.match(installed, /不要把钥匙写进命令/);
 });
 
 test("读取接口拒绝坏参数，不查询数据库", async () => {
