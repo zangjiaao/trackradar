@@ -118,25 +118,23 @@ Workers Free 每天浏览器时间大约 10 分钟，超出后接口返回 429�
 
 ## 办公室读取
 
-`worker/index.ts` 导出 `RadarApi`。这是给同一个 Cloudflare 账号里的 Worker 用的入口，只通过 service binding 调用，不挂在上面的页面路由上。配置、密钥和信源扫描仍走原来的接口。
+给办公室 Agent 的安装说明是 `https://trackradar.oak-studio.org/skill.md`。Agent 用 curl 读取后，按页面把技能装到 `~/.agents/skills/trackradar`，再执行其中的 `brief` 和 `lead`。没有手机号授权。
 
-调用方这样绑定：
+读取接口与技能页同源：
 
-```jsonc
-"services": [
-  {
-    "binding": "TRACKRADAR",
-    "service": "trackradar",
-    "entrypoint": "RadarApi"
-  }
-]
-```
+| 路径 | 作用 |
+| --- | --- |
+| `GET /skill.md` | 给 Agent 的安装说明 |
+| `GET /agent/SKILL.md` | 安装后的技能正文 |
+| `GET /agent/scripts/client.mjs` | 读取客户端 |
+| `POST /api/radar/brief` | 最新一页，或用 `since`、`after_id` 续读更晚入库的线索 |
+| `POST /api/radar/lead` | 按 `id` 读一条。没有这条时 `lead` 为 null |
 
-`brief({ since, after_id, limit })` 读已入库的政策和案例。不带游标时返回最新 20 条（`limit` 最多 50），按入库时间从旧到新排列，`cursor` 停在其中最新的一条，`has_more` 为 false。下次把 `cursor.created_at` 和 `cursor.id` 作为 `since`、`after_id` 传回，只取更晚入库的线索；一次放不下时 `has_more` 为 true，用新游标继续。没有新线索时 `items` 为空，游标保持不变。
+`brief` 不带游标时返回最新 20 条（`limit` 最多 50），按入库时间从旧到新。`cursor` 停在其中最新的一条。下次把 `cursor.created_at` 和 `cursor.id` 传回，只取更晚入库的线索。一次放不下时 `has_more` 为 true。没有新线索时 `items` 为空，游标保持不变。
 
-`lead({ id })` 读一条。编号不存在时 `lead` 为 null。
+卡片含编号、入库时间、来源、类型、标题、原文链接、赛道、地域、发布日、价值分、相关性、一段解读，以及福利、参与、门槛、联络人、窗口和案例信号。不含模型密钥，也不返回正文附件全文。配置、扫描和对话仍走原来的接口。
 
-卡片含编号、入库时间、来源、类型、标题、原文链接、赛道、地域、发布日、价值分、相关性、一段解读，以及福利、参与、门槛、联络人、窗口和案例信号。不含模型密钥，也不返回正文附件全文。
+`trackradar.oak-studio.org` 目前挂着 Cloudflare Access，未登录的 curl 会跳到登录页。办公室要直接读这几个地址，需要在 Access 里放行 `/skill.md`、`/agent` 和 `/api/radar`。
 
 ## D1 表
 
