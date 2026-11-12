@@ -5,12 +5,12 @@ description: 当用户要安装或阅读赛道雷达、查看新入库的政策�
 
 # 赛道雷达
 
-以本文件所在目录为技能根目录。`--origin` 用安装时的站点来源，生产是 `https://trackradar.oak-studio.org`。不跟随重定向，不关闭证书校验。没有授权链接，装好后直接读。
+以本文件所在目录为技能根目录。在办公室工作目录执行下面的绝对路径，不要先 cd。客户端自己从当前目录往上找 `.dev.vars`，带上 `CF-Access-Client-Id` 和 `CF-Access-Client-Secret`。不要把这两个值写进命令、输出或对话。`--origin` 用 `https://trackradar.oak-studio.org`。不跟随重定向，不关闭证书校验。没有授权链接，装好后直接读。
 
 ```bash
-node scripts/client.mjs brief --origin https://trackradar.oak-studio.org
-node scripts/client.mjs brief --origin https://trackradar.oak-studio.org --since 游标时间 --after-id 游标编号
-node scripts/client.mjs lead --origin https://trackradar.oak-studio.org --id 线索编号
+node ~/.agents/skills/trackradar/scripts/client.mjs brief --origin https://trackradar.oak-studio.org
+node ~/.agents/skills/trackradar/scripts/client.mjs brief --origin https://trackradar.oak-studio.org --since 游标时间 --after-id 游标编号
+node ~/.agents/skills/trackradar/scripts/client.mjs lead --origin https://trackradar.oak-studio.org --id 线索编号
 ```
 
 不带游标的 brief 返回最新一页，按入库时间从旧到新。把返回的 `cursor.created_at` 和 `cursor.id` 用 remember 记下。下次两个一起作为 `--since` 和 `--after-id` 传入。`items` 为空表示没有新线索，游标保持不变。`has_more` 为 true 时用新游标再取一页。

@@ -118,7 +118,7 @@ Workers Free 每天浏览器时间大约 10 分钟，超出后接口返回 429�
 
 ## 办公室读取
 
-给办公室 Agent 的安装说明是 `https://trackradar.oak-studio.org/skill.md`。Agent 用 curl 读取后，按页面把技能装到 `~/.agents/skills/trackradar`，再执行其中的 `brief` 和 `lead`。没有手机号授权。
+给办公室 Agent 的安装说明是 `https://trackradar.oak-studio.org/skill.md`。Agent 用办公室 `.dev.vars` 里已有的 Access 服务令牌请求头读取，按页面把技能装到 `~/.agents/skills/trackradar`，再执行其中的 `brief` 和 `lead`。没有手机号授权。令牌不要进入命令或对话。
 
 读取接口与技能页同源：
 
@@ -134,7 +134,7 @@ Workers Free 每天浏览器时间大约 10 分钟，超出后接口返回 429�
 
 卡片含编号、入库时间、来源、类型、标题、原文链接、赛道、地域、发布日、价值分、相关性、一段解读，以及福利、参与、门槛、联络人、窗口和案例信号。不含模型密钥，也不返回正文附件全文。配置、扫描和对话仍走原来的接口。
 
-`trackradar.oak-studio.org` 目前挂着 Cloudflare Access，未登录的 curl 会跳到登录页。办公室要直接读这几个地址，需要在 Access 里放行 `/skill.md`、`/agent` 和 `/api/radar`。
+`trackradar.oak-studio.org` 挂着 Cloudflare Access。在这个应用里加一条策略，动作选 Service Auth，纳入办公室主机已经在用的那枚服务令牌。没有这枚令牌的请求仍停在登录页。数据接口保持关闭。
 
 ## D1 表
 
