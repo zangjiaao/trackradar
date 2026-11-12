@@ -116,6 +116,28 @@ Workers Free 每天浏览器时间大约 10 分钟，超出后接口返回 429�
 | `GET/POST /api/chat/sessions` | 列出会话 / 新建会话。消息和草稿按会话隔离 |
 | `GET/PUT/DELETE /api/chat/sessions/:id` | 读取、保存或删除一个会话。删除时消息一起去掉 |
 
+## 办公室读取
+
+`worker/index.ts` 导出 `RadarApi`。这是给同一个 Cloudflare 账号里的 Worker 用的入口，只通过 service binding 调用，不挂在上面的页面路由上。配置、密钥和信源扫描仍走原来的接口。
+
+调用方这样绑定：
+
+```jsonc
+"services": [
+  {
+    "binding": "TRACKRADAR",
+    "service": "trackradar",
+    "entrypoint": "RadarApi"
+  }
+]
+```
+
+`brief({ since, after_id, limit })` 读已入库的政策和案例。不带游标时返回最新 20 条（`limit` 最多 50），按入库时间从旧到新排列，`cursor` 停在其中最新的一条，`has_more` 为 false。下次把 `cursor.created_at` 和 `cursor.id` 作为 `since`、`after_id` 传回，只取更晚入库的线索；一次放不下时 `has_more` 为 true，用新游标继续。没有新线索时 `items` 为空，游标保持不变。
+
+`lead({ id })` 读一条。编号不存在时 `lead` 为 null。
+
+卡片含编号、入库时间、来源、类型、标题、原文链接、赛道、地域、发布日、价值分、相关性、一段解读，以及福利、参与、门槛、联络人、窗口和案例信号。不含模型密钥，也不返回正文附件全文。
+
 ## D1 表
 
 迁移在 `migrations/`。
