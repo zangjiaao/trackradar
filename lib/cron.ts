@@ -20,7 +20,7 @@ export async function runScheduledTasks(database: D1Database, cron: string): Pro
     tasks = await listTasks(database);
   } catch (error) {
     const message = error instanceof Error ? error.message : "读取任务失败";
-    await insertTaskNotice(database, `读取定时任务失败：${message}`);
+    await insertTaskNotice(database, `读取定时任务失败：${message}`, "failed");
     return { ran: 0 };
   }
   const due = tasksDue(
@@ -37,7 +37,8 @@ export async function runScheduledTasks(database: D1Database, cron: string): Pro
     try {
       await runTask(database, { ...task, enabled: 1 }, "schedule");
     } catch {
-      await insertTaskNotice(database, `任务「${task.name}」执行失败，其余到期任务继续执行。`, "failed", task.id);
+      // The scan lifecycle already marked its execution record failed.
+      console.log(JSON.stringify({ event: "cron_task_failed", taskId: task.id }));
     }
   }
   console.log(JSON.stringify({ event: "cron_tasks", cron, ran: due.length }));

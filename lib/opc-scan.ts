@@ -1,3 +1,4 @@
+import { withScanLog, type ScanProgress, type ScanStatus } from "./scan-log";
 import type { CaseAssessor, CaseAssessment } from "./case-assess";
 import { assessErrorReason } from "./policy-assess-json";
 import { fetchOpcPage, opcFetchErrorReason, type OpcFeed, type OpcItem } from "./opc-feed";
@@ -45,8 +46,12 @@ async function saveAssessment(database: D1Database, item: OpcItem, assessment: C
 }
 
 /** Shared manual/cron pipeline, with durable pagination and a retryable candidate queue. */
-export async function runOpcScan(database: D1Database, request: OpcScanRequest) {
-  const started = new Date().toISOString();
+export function runOpcScan(database: D1Database, request: OpcScanRequest) {
+  const title = `${request.trigger === "schedule" ? "定时执行" : "立即执行"}「${request.taskName ?? "OPC 案例采集"}」`;
+  return withScanLog(database, { kind: "opc_scan", title, taskId: request.taskId }, (progress) => scanOpc(database, request, progress));
+}
+
+async function scanOpc(database: D1Database, request: OpcScanRequest, progress: ScanProgress) {
   const deadline = Date.now() + (request.budgetMs ?? 90_000);
   const token = crypto.randomUUID();
   const lock = await database.prepare(`INSERT INTO collection_locks (name, token, expires_at) VALUES ('opc', ?, ?)
@@ -58,7 +63,7 @@ export async function runOpcScan(database: D1Database, request: OpcScanRequest) 
   let filtered = 0;
   let visited = 0;
   let pending = 0;
-  let status = "done";
+  let status: ScanStatus = "done";
   const notes: string[] = [];
   const acquired = (lock.meta.changes ?? 0) > 0;
   try {
@@ -89,6 +94,7 @@ export async function runOpcScan(database: D1Database, request: OpcScanRequest) 
               ).bind(item.url, item.feed, JSON.stringify(item))));
               collected += inserts.reduce((total, result) => total + (result.meta.changes ?? 0), 0);
             }
+            await progress(`正在采集${state.feed === "products" ? "产品" : "需求"}｜访问 ${visited} 页，新增候选 ${collected}`);
             // Pinned demand posts can mix dates. Do not stop at the first old item.
             state.done = state.page >= page.totalPages || page.items.length === 0
               || page.items.every((item) => item.publishedAt < state.cutoff);
@@ -107,6 +113,7 @@ export async function runOpcScan(database: D1Database, request: OpcScanRequest) 
         if (Date.now() + 1000 >= fetchDeadline) break;
       }
       if (states.some((state) => !state.done)) { notes.push("列表尚未采完，下次从保存的页码继续"); status = "partial"; }
+      await progress(`列表采集阶段结束｜访问 ${visited} 页，新增候选 ${collected}｜正在准备筛选`);
       const assess = request.assess !== undefined ? request.assess
         : await (await import("./case-assess-model")).createCaseAssessor(database, request.instruction ?? "");
       if (!assess) notes.push("未配置模型，候选已保留，配置后再次执行可继续筛选");
@@ -117,6 +124,7 @@ export async function runOpcScan(database: D1Database, request: OpcScanRequest) 
         for (let offset = 0; offset < queue.length && Date.now() + 2000 < deadline; offset += 8) {
           const batch = queue.slice(offset, offset + 8);
           await database.batch(batch.map((row) => database.prepare("UPDATE case_candidates SET attempts = attempts + 1 WHERE url = ?").bind(row.url)));
+          await progress(`正在筛选候选｜新增候选 ${collected}，评了 ${scored}，过滤 ${filtered}，写入案例 ${saved}`);
           try {
             const items = batch.map((row) => JSON.parse(row.payload) as OpcItem);
             const results = await assess(items, Math.max(1, Math.min(25_000, deadline - Date.now())));
@@ -127,6 +135,7 @@ export async function runOpcScan(database: D1Database, request: OpcScanRequest) 
               scored += 1;
               if (value.score < 50) filtered += 1;
             }
+            await progress(`正在筛选候选｜新增候选 ${collected}，评了 ${scored}，过滤 ${filtered}，写入案例 ${saved}`);
           } catch (error) {
             notes.push(`筛选未完成（${assessErrorReason(error)}），未处理候选保留待重试`);
             status = "partial";
@@ -144,8 +153,5 @@ export async function runOpcScan(database: D1Database, request: OpcScanRequest) 
     if (acquired) await database.prepare("DELETE FROM collection_locks WHERE name = 'opc' AND token = ?").bind(token).run();
   }
   const summary = `${request.trigger === "schedule" ? "定时执行" : "立即执行"}「${request.taskName ?? "OPC 案例采集"}」｜访问 ${visited} 页｜新增候选 ${collected}，评了 ${scored}，过滤 ${filtered}，写入案例 ${saved}，待筛选 ${pending}。${[...new Set(notes)].join("；")}`;
-  await database.prepare(`INSERT INTO crawl_jobs (id, task_id, kind, status, message, started_at, finished_at)
-    VALUES (?, ?, 'opc_scan', ?, ?, ?, ?)`)
-    .bind(crypto.randomUUID(), request.taskId ?? null, status, summary, started, new Date().toISOString()).run();
   return { saved, collected, scored, filtered, pending, visited, status, summary };
 }

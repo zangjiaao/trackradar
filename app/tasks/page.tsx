@@ -17,7 +17,7 @@ export default async function TasksPage() {
     return (
       <VStack gap={4} className="page-column">
         <HStack gap={3} wrap="wrap" justify="between" vAlign="center">
-          <PageHeader title="任务" description="采集政策或 OPC圈案例。定时任务按北京时间执行，手动任务按需运行；采集进度和结果记录在下方。" />
+          <PageHeader title="任务" description="采集政策或 OPC圈案例。定时任务按北京时间执行，手动任务按需运行；采集进度和结果记录在下方，页面每 5 秒自动更新。" />
           <TaskEntry />
         </HStack>
         <VStack gap={3}>

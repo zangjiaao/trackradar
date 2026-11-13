@@ -1,4 +1,5 @@
 import { AppShell } from "@astryxdesign/core/AppShell";
+import { LiveRefresh } from "@/components/live-refresh";
 import { SiteNav } from "@/components/site-nav";
 
 export function AppFrame({ children }: { children: React.ReactNode }) {
@@ -10,6 +11,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
       mobileNav={false}
       topNav={<SiteNav />}
     >
+      <LiveRefresh />
       {children}
     </AppShell>
   );

@@ -45,7 +45,7 @@ export function WorkLog({ jobs }: { jobs: WorkLogItem[] }) {
       <HStack gap={2} wrap="wrap" vAlign="center" justify="between">
         <Heading level={2}>执行记录</Heading>
         {jobs.length > 0 ? (
-          <Button label="清空记录" variant="ghost" isDisabled={pending} onClick={() => setConfirming(true)} />
+          <Button label="清空已结束记录" variant="ghost" isDisabled={pending} onClick={() => setConfirming(true)} />
         ) : null}
       </HStack>
       {jobs.length === 0 ? (
@@ -92,8 +92,8 @@ export function WorkLog({ jobs }: { jobs: WorkLogItem[] }) {
         <Layout
           header={
             <DialogHeader
-              title="清空执行记录"
-              subtitle="只清掉这些日志。上面的定时任务还留着。"
+              title="清空已结束记录"
+              subtitle="执行中的记录会保留，定时任务也会保留。"
               onOpenChange={setConfirming}
             />
           }

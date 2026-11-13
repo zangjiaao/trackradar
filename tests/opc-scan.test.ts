@@ -153,3 +153,29 @@ test("模型JSON按URL对应，拒绝未知赛道、缺少解读的高分和重�
   assert.equal(parseCaseAssessments(JSON.stringify({ items: [{ ...valid, fit: "" }] }), [sample], ["T01"]).size, 0);
   assert.throws(() => parseCaseAssessments(JSON.stringify({ items: [valid, valid] }), [sample], ["T01"]));
 });
+
+test("任务一开始就写执行中记录，结束后原记录更新为最终结果", async () => {
+  const { database, sqlite } = migratedDatabase();
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  let entered!: () => void;
+  const started = new Promise<void>((resolve) => { entered = resolve; });
+  const running = runOpcScan(database, { ...request, assess: null, fetchPage: async () => {
+    entered();
+    await gate;
+    return page([]);
+  } });
+  try {
+    await started;
+    const log = sqlite.prepare("SELECT id, status, finished_at FROM crawl_jobs WHERE kind='opc_scan'").get();
+    assert.equal(log?.status, "running", "采集等待期间，执行记录应已存在且显示执行中");
+    assert.equal(log?.finished_at, null);
+  } finally {
+    release();
+    await running;
+  }
+  const logs = sqlite.prepare("SELECT status, finished_at FROM crawl_jobs WHERE kind='opc_scan'").all();
+  assert.equal(logs.length, 1, "开始和结束更新同一条记录");
+  assert.equal(logs[0]?.status, "done");
+  assert.ok(logs[0]?.finished_at);
+});

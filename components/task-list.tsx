@@ -18,7 +18,7 @@ export function TaskList({ tasks }: { tasks: AgentTaskRow[] }) {
   const [enabled, setEnabled] = useState<Record<string, boolean>>({});
 
   async function toggle(task: AgentTaskRow, value: boolean) {
-    const previous = enabled[task.id] ?? task.enabled === 1;
+    const previous = task.enabled === 1;
     setEnabled((current) => ({ ...current, [task.id]: value }));
     setPendingId(task.id);
     setAction("toggle");
@@ -98,7 +98,7 @@ export function TaskList({ tasks }: { tasks: AgentTaskRow[] }) {
               </Text>
               <Text type="supporting">{task.instruction}</Text>
             </VStack>
-            {task.cadence !== "manual" ? <Switch label="自动执行" value={enabled[task.id] ?? task.enabled === 1} isDisabled={pendingId !== null} onChange={(value) => void toggle(task, value)} /> : null}
+            {task.cadence !== "manual" ? <Switch label="自动执行" value={pendingId === task.id && action === "toggle" ? enabled[task.id] ?? task.enabled === 1 : task.enabled === 1} isDisabled={pendingId !== null} onChange={(value) => void toggle(task, value)} /> : null}
           </HStack>
           <HStack gap={2} wrap="wrap">
             <Button label={pendingId === task.id && action === "run" ? "执行中" : "立即执行"} variant="secondary" isDisabled={pendingId !== null} onClick={() => void run(task)} />

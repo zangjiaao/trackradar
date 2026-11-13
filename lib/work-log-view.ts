@@ -33,6 +33,7 @@ export const WORK_KIND_LABEL: Record<string, string> = {
 };
 
 export const WORK_STATUS_LABEL: Record<string, string> = {
+  running: "执行中",
   partial: "未完成",
   placeholder: "占位",
   skipped: "跳过",
@@ -118,7 +119,7 @@ export function formatWorkTime(iso: string): string {
 
 /** 只删除执行记录。定时任务在另一张表里，这里不会动。 */
 export async function clearCrawlJobs(database: JobsDb): Promise<number> {
-  const row = await database.prepare("SELECT COUNT(*) AS total FROM crawl_jobs").first<{ total: number }>();
-  await database.prepare("DELETE FROM crawl_jobs").run();
+  const row = await database.prepare("SELECT COUNT(*) AS total FROM crawl_jobs WHERE status != 'running'").first<{ total: number }>();
+  await database.prepare("DELETE FROM crawl_jobs WHERE status != 'running'").run();
   return Number(row?.total ?? 0);
 }
