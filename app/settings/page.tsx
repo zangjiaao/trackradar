@@ -3,6 +3,7 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
+import { AgentKeysForm } from "@/components/agent-keys-form";
 import { DbFallback } from "@/components/db-fallback";
 import { MaterialSitesForm } from "@/components/material-sites-form";
 import { ModelForm } from "@/components/model-form";
@@ -13,15 +14,18 @@ import { SourceList } from "@/components/source-list";
 import { TrackEditor } from "@/components/track-editor";
 import { WEIGHT_LABELS, WEIGHTS } from "@/lib/domain";
 import { listSources, listTracks, getActivePrompt } from "@/lib/queries";
+import { listAgentKeys } from "@/lib/agent-key";
+import { getDb } from "@/lib/db";
 import { readMaterialSites, readPublicModel, readPublicTavily } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   try {
-    const [model, tavily, sources, tracks, prompt, materialSites] = await Promise.all([
+    const [model, tavily, agentKeys, sources, tracks, prompt, materialSites] = await Promise.all([
       readPublicModel(),
       readPublicTavily(),
+      listAgentKeys(getDb()).catch(() => []),
       listSources(),
       listTracks(),
       getActivePrompt(),
@@ -33,6 +37,12 @@ export default async function SettingsPage() {
           title="配置"
           description="先配好模型、联网搜索、提示词和信源。对话和任务都会按这里的要求，到已启用信源回看并写入政策。定时任务在任务页，不在这里。"
         />
+        <Card>
+          <VStack gap={3} id="agent-keys">
+            <Heading level={2}>办公室钥匙</Heading>
+            <AgentKeysForm keys={agentKeys} />
+          </VStack>
+        </Card>
         <Card>
           <VStack gap={3} id="model">
             <Heading level={2}>模型</Heading>

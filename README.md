@@ -116,6 +116,26 @@ Workers Free 每天浏览器时间大约 10 分钟，超出后接口返回 429�
 | `GET/POST /api/chat/sessions` | 列出会话 / 新建会话。消息和草稿按会话隔离 |
 | `GET/PUT/DELETE /api/chat/sessions/:id` | 读取、保存或删除一个会话。删除时消息一起去掉 |
 
+## 办公室读取
+
+给办公室 Agent 的安装说明是 `https://trackradar.oak-studio.org/skill.md`。配置页可以创建 Agent API Key，全文只显示一次。写到办公室机器的 `~/.config/trackradar/agent.key`，权限 600。客户端用 `Authorization: Bearer` 调用 `brief` 和 `lead`。没有手机号授权。钥匙不要进入命令或对话。
+
+读取接口与技能页同源：
+
+| 路径 | 作用 |
+| --- | --- |
+| `GET /skill.md` | 给 Agent 的安装说明 |
+| `GET /agent/SKILL.md` | 安装后的技能正文 |
+| `GET /agent/scripts/client.mjs` | 读取客户端 |
+| `POST /api/radar/brief` | 最新一页，或用 `since`、`after_id` 续读更晚入库的线索 |
+| `POST /api/radar/lead` | 按 `id` 读一条。没有这条时 `lead` 为 null |
+
+`brief` 不带游标时返回最新 20 条（`limit` 最多 50），按入库时间从旧到新。`cursor` 停在其中最新的一条。下次把 `cursor.created_at` 和 `cursor.id` 传回，只取更晚入库的线索。一次放不下时 `has_more` 为 true。没有新线索时 `items` 为空，游标保持不变。
+
+卡片含编号、入库时间、来源、类型、标题、原文链接、赛道、地域、发布日、价值分、相关性、一段解读，以及福利、参与、门槛、联络人、窗口和案例信号。不含模型密钥，也不返回正文附件全文。配置、扫描和对话仍走原来的接口。
+
+`trackradar.oak-studio.org` 挂着 Cloudflare Access。安装页和 `/api/radar` 若要给办公室直接访问，只放行这几条路径。配置、扫描、对话和 `/api/agent-keys` 继续留在 Access 后面。放行之后，读取接口仍校验 Agent API Key，没有钥匙的请求拿不到线索。
+
 ## D1 表
 
 迁移在 `migrations/`。
