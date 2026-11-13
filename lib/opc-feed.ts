@@ -1,3 +1,5 @@
+import type { CaseAuthor } from "./domain";
+
 /** OPC圈 public feeds. Only these fixed endpoints are fetched, never links in posts. */
 export type OpcFeed = "products" | "demands";
 export type OpcItem = {
@@ -8,12 +10,31 @@ export type OpcItem = {
   publishedAt: string;
   region: string;
   facts: string;
+  /** Missing on legacy candidate payloads. Never inferred by the model. */
+  author?: CaseAuthor | null;
 };
 export type OpcPage = { items: OpcItem[]; totalPages: number; oldest: string | null };
 
 const record = (value: unknown): Record<string, unknown> =>
   value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 const text = (value: unknown, max = 16000) => typeof value === "string" ? value.trim().slice(0, max) : "";
+
+export function opcProfileUrl(username: string | null): string | null {
+  return username ? `https://www.opcquan.com/profile/${encodeURIComponent(username)}` : null;
+}
+
+function parseAuthor(value: unknown): CaseAuthor | null {
+  const row = record(value);
+  const id = text(row.id, 200);
+  if (!id) return null;
+  const username = text(row.username, 200) || null;
+  return {
+    id, username, name: text(row.name, 200) || null, bio: text(row.bio, 2000) || null,
+    location: text(row.location, 100) || null,
+    verified: typeof row.verified === "boolean" ? row.verified : null,
+    profile_url: opcProfileUrl(username),
+  };
+}
 
 export function parseOpcPage(payload: unknown, feed: OpcFeed): OpcPage {
   const root = record(payload);
@@ -41,7 +62,7 @@ export function parseOpcPage(payload: unknown, feed: OpcFeed): OpcPage {
       ? `作者标注阶段：${text(row.stage, 60)}；类别：${text(row.category, 100)}`
       : JSON.stringify({ budgetMin: row.budgetMin ?? null, budgetMax: row.budgetMax ?? null, budgetType: row.budgetType ?? null, deadline: row.deadline ?? null });
     items.push({ url: `https://www.opcquan.com/${feed === "products" ? "projects" : "plaza"}/${encodeURIComponent(id)}`,
-      feed, title, body, publishedAt, region: text(author.location, 100), facts });
+      feed, title, body, publishedAt, region: text(author.location, 100), facts, author: parseAuthor(author) });
   }
   return { items, totalPages: Number(pagination.totalPages), oldest };
 }

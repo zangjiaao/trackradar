@@ -179,3 +179,102 @@ test("任务一开始就写执行中记录，结束后原记录更新为最终�
   assert.equal(logs[0]?.status, "done");
   assert.ok(logs[0]?.finished_at);
 });
+
+const author = {
+  id: "cmsj5ndu602ff13lobdz9c6k6", username: "user_q0apk817", name: "王文",
+  bio: "专注 toB AI Agent", location: "深圳 上海", verified: true,
+  profile_url: "https://www.opcquan.com/profile/user_q0apk817",
+};
+
+test("产品 owner 与需求 author 保留公开作者字段，主页使用用户名而非用户 ID", () => {
+  for (const feed of ["products", "demands"] as const) {
+    const row = { slug: "okdata", id: "demand", name: "okdata", title: "知识库需求", description: "社媒 API", content: "知识库需求", createdAt: now.toISOString(),
+      [feed === "products" ? "owner" : "author"]: author };
+    const result = parseOpcPage({ [feed === "products" ? "projects" : "data"]: [row], pagination: { totalPages: 1 } }, feed);
+    assert.deepEqual(result.items[0]?.author, author);
+  }
+  const parse = (owner: unknown) => parseOpcPage({ projects: [{ slug: "test", name: "测试", description: "知识库", createdAt: now.toISOString(), owner }], pagination: { totalPages: 1 } }, "products").items[0]?.author;
+  assert.equal(parse({ name: "无用户ID" }), null);
+  assert.deepEqual(parse({ id: "stable-id" }), { id: "stable-id", username: null, name: null, bio: null, location: null, verified: null, profile_url: null });
+  assert.equal(parse({ ...author, username: "../fake?next=example.com", verified: "true" })?.profile_url, "https://www.opcquan.com/profile/..%2Ffake%3Fnext%3Dexample.com");
+  assert.equal(parse({ ...author, verified: "true" })?.verified, null);
+});
+
+test("旧候选再次出现时只补作者，已通过和已过滤记录不重新评估，不移动增量游标", async () => {
+  const { database, sqlite } = migratedDatabase();
+  const firstItem = item(1);
+  const filteredItem = item(2);
+  const first = await runOpcScan(database, { ...request, fetchPage: async (feed) => page(feed === "products" ? [firstItem, filteredItem] : []),
+    assess: async (items) => new Map(items.map((value) => [value.url, assessment(value, value.url === filteredItem.url ? 10 : 85)])) });
+  assert.equal(first.saved, 1);
+  const before = sqlite.prepare("SELECT * FROM case_candidates ORDER BY url").all();
+  const brief = await radarBrief(database);
+  const old = brief.items.find((card) => card.url === firstItem.url)!;
+  assert.equal(old.author, null);
+  assert.deepEqual(old.related_cases, []);
+  const second = await runOpcScan(database, { ...request, fetchPage: async (feed) => page(feed === "products" ? [{ ...firstItem, title: "不覆盖旧标题", author }, { ...filteredItem, author }] : []),
+    assess: async () => { throw new Error("must not rescore"); } });
+  assert.equal(second.status, "done");
+  assert.equal(second.collected, 0);
+  assert.equal(second.scored, 0);
+  const after = sqlite.prepare("SELECT * FROM case_candidates ORDER BY url").all();
+  for (let i = 0; i < before.length; i += 1) {
+    for (const key of ["stage", "attempts", "relevance_score", "relevance_reason", "lead_id", "created_at", "updated_at"]) {
+      assert.equal(after[i]?.[key], before[i]?.[key], key);
+    }
+    assert.equal(after[i]?.author_id, author.id);
+  }
+  const detail = (await radarLead(database, { id: old.id })).lead!;
+  assert.deepEqual(detail.author, author);
+  assert.equal(detail.title, firstItem.title);
+  assert.equal(detail.created_at, old.created_at);
+  assert.equal(detail.related_cases_count, 0, "低分候选不成为同作者关联");
+  assert.equal((await radarBrief(database, { since: brief.cursor?.created_at, after_id: brief.cursor?.id })).items.length, 0);
+  // Missing metadata on a later feed response must not erase the known author.
+  await runOpcScan(database, { ...request, fetchPage: async (feed) => page(feed === "products" ? [firstItem] : []), assess });
+  assert.deepEqual((await radarLead(database, { id: old.id })).lead?.author, author);
+});
+
+test("同作者的产品和需求可关联，同名不同ID、低分候选、人工案例不混入", async () => {
+  const { database, sqlite } = migratedDatabase();
+  const shared = [1, 2, 3].map((id) => ({ ...item(id, id === 3 ? "demands" : "products"), author }));
+  const sameName = { ...item(4), author: { ...author, id: "different-id", username: "different-user" } };
+  const manual = { ...item(5), author };
+  const dropped = { ...item(6), author };
+  const manualId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  sqlite.prepare("INSERT INTO leads (id,title,url,kind,origin,summary,site) VALUES (?, '人工标题', ?, 'case', 'manual', '人工摘要', 'opcquan')").run(manualId, manual.url);
+  await runOpcScan(database, { ...request, fetchPage: async (feed) => page([...shared, sameName, manual, dropped].filter((value) => value.feed === feed)),
+    assess: async (items) => new Map(items.map((value) => [value.url, assessment(value, value.url === dropped.url ? 10 : 85)])) });
+  const brief = await radarBrief(database, { limit: 50 });
+  for (const value of shared) {
+    const card = brief.items.find((card) => card.url === value.url)!;
+    assert.deepEqual(card.author, author);
+    assert.equal(card.related_cases_count, 2);
+    assert.deepEqual(new Set(card.related_cases.map((related) => related.url)), new Set(shared.filter((other) => other.url !== value.url).map((other) => other.url)));
+    assert.deepEqual((await radarLead(database, { id: card.id })).lead?.related_cases, card.related_cases);
+  }
+  assert.equal(brief.items.find((card) => card.url === sameName.url)?.related_cases_count, 0);
+  const manualCard = (await radarLead(database, { id: manualId })).lead!;
+  assert.equal(manualCard.author, null);
+  assert.deepEqual(manualCard.related_cases, []);
+  assert.equal(manualCard.seen, "人工摘要");
+  // The same stable ID can change its username and public display name.
+  const renamed = { ...author, username: "new-user", name: "新昵称", verified: false, profile_url: "https://www.opcquan.com/profile/new-user" };
+  await runOpcScan(database, { ...request, fetchPage: async (feed) => page(feed === "products" ? [{ ...shared[0]!, author: renamed }] : []), assess });
+  const another = brief.items.find((card) => card.url === shared[2]?.url)!;
+  assert.deepEqual((await radarLead(database, { id: another.id })).lead?.author, renamed);
+});
+
+test("同作者案例预览限五条，总数不截断且始终排除当前案例", async () => {
+  const { database } = migratedDatabase();
+  const items = Array.from({ length: 8 }, (_, index) => ({ ...item(index), author }));
+  await runOpcScan(database, { ...request, fetchPage: async (feed) => page(feed === "products" ? items : []), assess });
+  const brief = await radarBrief(database, { limit: 50 });
+  const cards = brief.items.filter((card) => card.author?.id === author.id);
+  assert.equal(cards.length, 8);
+  for (const card of cards) {
+    assert.equal(card.related_cases_count, 7);
+    assert.equal(card.related_cases.length, 5);
+    assert.ok(card.related_cases.every((related) => related.id !== card.id));
+  }
+});

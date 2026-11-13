@@ -1,3 +1,4 @@
+import { attachCaseAuthors } from "./case-author";
 import type { KeywordSetRow, LeadRow, ParsedSample, Platform, SampleRow, Side, SourceRow, TrackRow } from "./domain";
 import { isPlatform, isSide } from "./domain";
 import { getDb } from "./db";
@@ -43,7 +44,7 @@ export async function listSources(): Promise<SourceRow[]> {
   return results;
 }
 
-type LeadQueryRow = Omit<LeadRow, "track_codes">;
+type LeadQueryRow = Omit<LeadRow, "track_codes" | "author" | "related_cases" | "related_cases_count">;
 
 async function attachTrackCodes(database: D1Database, rows: LeadQueryRow[]): Promise<LeadRow[]> {
   if (rows.length === 0) return [];
@@ -58,10 +59,10 @@ async function attachTrackCodes(database: D1Database, rows: LeadQueryRow[]): Pro
     list.push(row.track_code);
     grouped.set(row.lead_id, list);
   }
-  return rows.map((row) => ({
+  return attachCaseAuthors(database, rows.map((row) => ({
     ...row,
     track_codes: sortTrackCodes(grouped.get(row.id) ?? (row.track_code ? [row.track_code] : [])),
-  }));
+  })));
 }
 
 const LEAD_COLUMNS = `l.id, l.source_id, l.track_code, l.title, l.url, l.summary, l.relevant_excerpt, l.opportunity_note,

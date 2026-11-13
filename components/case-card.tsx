@@ -83,6 +83,30 @@ export function CaseCard({ lead, names }: { lead: LeadRow; names: Map<string, st
             </Text>
           </VStack>
         ) : null}
+        {lead.author ? (
+          <VStack gap={1}>
+            <Text as="p" type="supporting">发布者</Text>
+            {lead.author.profile_url ? (
+              <Link href={lead.author.profile_url} target="_blank" rel="noreferrer noopener">
+                {lead.author.name || lead.author.username || "OPC圈用户"} · 作者主页
+              </Link>
+            ) : <Text as="p">{lead.author.name || lead.author.username || "OPC圈用户"}</Text>}
+            {lead.author.location ? <Text as="p" type="supporting">{lead.author.location}</Text> : null}
+            {lead.author.verified === true ? <Text as="p" type="supporting">OPC圈平台认证</Text> : null}
+            {lead.author.bio ? <Text as="p" type="supporting">作者自述：{lead.author.bio}</Text> : null}
+            {lead.related_cases_count > 0 ? (
+              <VStack gap={1}>
+                <Text as="p" type="supporting">同作者其他已采集案例 · {lead.related_cases_count} 条</Text>
+                {lead.related_cases.map((related) => (
+                  <Link key={related.id} href={related.url} target="_blank" rel="noreferrer noopener">{related.title}</Link>
+                ))}
+                {lead.related_cases_count > lead.related_cases.length ? (
+                  <Text as="p" type="supporting">展示最近 {lead.related_cases.length} 条</Text>
+                ) : null}
+              </VStack>
+            ) : null}
+          </VStack>
+        ) : null}
         <Link href={lead.url} target="_blank" rel="noreferrer noopener">
           原文 · {hostLabel(lead.url)}
         </Link>

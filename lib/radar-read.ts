@@ -1,4 +1,5 @@
-import type { LeadRow } from "./domain";
+import { attachCaseAuthors } from "./case-author";
+import type { CaseAuthorFields, LeadRow } from "./domain";
 import { leadBrief } from "./lead-brief";
 import { sortTrackCodes } from "./lead-tracks";
 
@@ -35,7 +36,7 @@ export class RadarInputError extends Error {
 
 export type RadarCursor = { created_at: string; id: string | null };
 
-export type RadarCard = {
+export type RadarCard = CaseAuthorFields & {
   id: string;
   created_at: string;
   source_name: string | null;
@@ -67,7 +68,7 @@ export type RadarBrief = {
   has_more: boolean;
 };
 
-type LeadQueryRow = Omit<LeadRow, "track_codes">;
+type LeadQueryRow = Omit<LeadRow, "track_codes" | "author" | "related_cases" | "related_cases_count">;
 
 /** 没有游标时给最新一页。带上上次游标后，只给更晚入库的线索。 */
 export async function radarBrief(database: D1Database, input: unknown = {}): Promise<RadarBrief> {
@@ -142,10 +143,10 @@ async function attachTrackCodes(database: D1Database, rows: LeadQueryRow[]): Pro
     list.push(row.track_code);
     grouped.set(row.lead_id, list);
   }
-  return rows.map((row) => ({
+  return attachCaseAuthors(database, rows.map((row) => ({
     ...row,
     track_codes: sortTrackCodes(grouped.get(row.id) ?? (row.track_code ? [row.track_code] : [])),
-  }));
+  })));
 }
 
 function toCard(lead: LeadRow, max: number): RadarCard {
@@ -176,6 +177,9 @@ function toCard(lead: LeadRow, max: number): RadarCard {
     signal: text(brief.signal),
     seen: text(brief.seen),
     fit: text(brief.fit),
+    author: brief.author,
+    related_cases: brief.related_cases,
+    related_cases_count: brief.related_cases_count,
   };
 }
 

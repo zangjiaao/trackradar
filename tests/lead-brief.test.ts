@@ -6,6 +6,9 @@ import { leadBrief } from "../lib/lead-brief.ts";
 function lead(partial: Partial<LeadRow> & Pick<LeadRow, "title" | "url" | "kind">): LeadRow {
   return {
     id: "1",
+    author: null,
+    related_cases: [],
+    related_cases_count: 0,
     source_id: null,
     track_code: null,
     summary: null,

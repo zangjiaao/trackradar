@@ -1,3 +1,4 @@
+import { opcAuthorStatements } from "./case-author";
 import { withScanLog, type ScanProgress, type ScanStatus } from "./scan-log";
 import type { CaseAssessor, CaseAssessment } from "./case-assess";
 import { assessErrorReason } from "./policy-assess-json";
@@ -89,10 +90,13 @@ async function scanOpc(database: D1Database, request: OpcScanRequest, progress: 
             visited += 1;
             const items = page.items.filter((item) => item.publishedAt >= state.cutoff && item.publishedAt <= now.toISOString());
             if (items.length) {
-              const inserts = await database.batch(items.map((item) => database.prepare(
-                "INSERT OR IGNORE INTO case_candidates (url, feed, payload) VALUES (?, ?, ?)",
-              ).bind(item.url, item.feed, JSON.stringify(item))));
-              collected += inserts.reduce((total, result) => total + (result.meta.changes ?? 0), 0);
+              const inserts = await database.batch([
+                ...items.map((item) => database.prepare(
+                  "INSERT OR IGNORE INTO case_candidates (url, feed, payload) VALUES (?, ?, ?)",
+                ).bind(item.url, item.feed, JSON.stringify(item))),
+                ...items.flatMap((item) => opcAuthorStatements(database, item)),
+              ]);
+              collected += inserts.slice(0, items.length).reduce((total, result) => total + (result.meta.changes ?? 0), 0);
             }
             await progress(`正在采集${state.feed === "products" ? "产品" : "需求"}｜访问 ${visited} 页，新增候选 ${collected}`);
             // Pinned demand posts can mix dates. Do not stop at the first old item.

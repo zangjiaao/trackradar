@@ -89,7 +89,25 @@ export type AgentTaskRow = {
   created_at: string;
 };
 
-export type LeadRow = {
+export type CaseAuthor = {
+  id: string;
+  username: string | null;
+  name: string | null;
+  bio: string | null;
+  location: string | null;
+  verified: boolean | null;
+  profile_url: string | null;
+};
+
+export type RelatedCase = { id: string; title: string; url: string };
+export type CaseAuthorFields = {
+  author: CaseAuthor | null;
+  related_cases: RelatedCase[];
+  /** Other collected cases, excluding this case; the list previews at most five. */
+  related_cases_count: number;
+};
+
+export type LeadRow = CaseAuthorFields & {
   id: string;
   source_id: string | null;
   track_code: string | null;
