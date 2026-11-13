@@ -24,7 +24,7 @@ export function MaterialSitesForm({ initial }: { initial: string }) {
         body: JSON.stringify({ materialSites: text }),
       });
       const body = (await response.json()) as { error?: string };
-      setMessage(response.ok ? "站点说明已保存。对话会读到这段文字，仍不会去爬这些网站。" : (body.error ?? "保存失败"));
+      setMessage(response.ok ? "站点说明已保存。案例补全会使用这段文字，仍不会去爬这些网站。" : (body.error ?? "保存失败"));
       if (response.ok) router.refresh();
     } finally {
       setPending(false);

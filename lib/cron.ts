@@ -13,7 +13,7 @@ async function insertSkipped(database: D1Database, message: string): Promise<voi
     .run();
 }
 
-/** 到点后执行已启用、且周期匹配的任务。采集、筛选、入库与对话里的回看是同一套。 */
+/** 到点后执行已启用、且周期匹配的任务。与任务页立即执行共用同一套采集、筛选和入库流程。 */
 export async function runScheduledTasks(database: D1Database, cron: string): Promise<{ ran: number }> {
   let tasks: Awaited<ReturnType<typeof listTasks>> = [];
   try {

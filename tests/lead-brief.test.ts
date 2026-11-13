@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { LeadRow } from "../lib/domain.ts";
-import { leadBrief, leadBriefLine } from "../lib/lead-brief.ts";
+import { leadBrief } from "../lib/lead-brief.ts";
 
 function lead(partial: Partial<LeadRow> & Pick<LeadRow, "title" | "url" | "kind">): LeadRow {
   return {
@@ -61,18 +61,10 @@ test("政策简报带相关性分和解读字段", () => {
   assert.equal(brief.threshold, "西安制造业中小企业");
   assert.equal(brief.contact, "王阳 029-67098976");
   assert.equal(brief.signal, null);
-  const line = leadBriefLine(row);
-  assert.match(line, /相关性 74/);
-  assert.match(line, /机会 帮企业做软件开发/);
-  assert.match(line, /福利 核定投入不超过 50%/);
-  assert.match(line, /参与 线上在数转系统提交/);
-  assert.match(line, /门槛 西安制造业中小企业/);
-  assert.match(line, /联络人 王阳 029-67098976/);
-  assert.match(line, /https:\/\/gxj\.xa\.gov\.cn\/example/);
   assert.equal(brief.entries, null);
 });
 
-test("目录明细进对话摘要，不替代卡片上的一段解读", () => {
+test("目录明细进办公室摘要，不替代卡片上的一段解读", () => {
   const row = lead({
     kind: "policy",
     title: "2026年新产品新技术目录清单",
@@ -84,7 +76,6 @@ test("目录明细进对话摘要，不替代卡片上的一段解读", () => {
   assert.match(brief.opportunity ?? "", /知识图谱/);
   assert.match(brief.entries ?? "", /西安星图软件有限公司/);
   assert.match(brief.entries ?? "", /西安云阶智元信息科技有限公司/);
-  assert.match(leadBriefLine(row), /条目 12 知识图谱/);
 });
 
 test("案例简报带信号和能力关系，不套申报字段", () => {
@@ -104,9 +95,4 @@ test("案例简报带信号和能力关系，不套申报字段", () => {
   assert.equal(brief.fit, "能做知识库的交付界面");
   assert.equal(brief.subsidy, null);
   assert.equal(brief.contact, null);
-  const line = leadBriefLine(row);
-  assert.match(line, /信号 预算 800 美元/);
-  assert.match(line, /关系 能做知识库的交付界面/);
-  assert.doesNotMatch(line, /福利/);
-  assert.doesNotMatch(line, /联络人/);
 });

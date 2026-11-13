@@ -1,17 +1,14 @@
 # 赛道雷达 TrackRadar
 
-用可量化证据，尽快选出更能接到订单的 AI 软件赛道，并建议 demo 与宣传切口。
+面向 AI 软件工作室的机会监控看板：定时采集官方政策，阅读正文和 PDF 附件，筛选、解读后入库；人工录入市场案例，供办公室 Agent 结合政策判断赛道、demo 和接单切口。
 
-工作室能力：智能体研发；企业知识库与业务知识治理；FDE 前场部署与上线交接。赛道只映射 T01–T10，不做汽车、机器人、具身智能硬件、芯片或服务器制造。
+工作室能力：智能体研发、企业知识库与业务知识治理、FDE 前场部署与上线交接。赛道固定为 T01–T10，不做汽车、机器人、具身智能硬件、芯片或服务器制造。
 
-这是可在本地启动的 MVP 骨架：Next.js App Router，经 [vinext](https://github.com/cloudflare/vinext) 跑在 Cloudflare Workers 上，数据用 D1（本地为 SQLite）。界面使用 [Astryx Design System](https://astryx.atmeta.com/)（`@astryxdesign/core`，neutral 主题，Tailwind v4 仅作布局桥接）。
+Next.js App Router 经 [vinext](https://github.com/cloudflare/vinext) 运行在 Cloudflare Workers，D1 存储数据（本地为 SQLite），界面使用 [Astryx Design System](https://astryx.atmeta.com/) 的 neutral 主题。
 
-## 环境
+## 本地开发
 
-- Node.js 22+
-- npm
-
-## 启动
+环境：Node.js 22+、npm。
 
 ```bash
 npm install
@@ -20,164 +17,135 @@ npm run db:migrate
 npm run dev
 ```
 
-开发服务器默认是 <http://localhost:3000>。`npm run dev` 使用 Vite + vinext，并在 workerd 里提供 D1 绑定 `DB`。
-
-迁移会创建表并写入 T01–T10、提示词 v1、政策信源种子、两条示例线索、一条历史示例采样，以及常用找素材站点说明。本地库在 `.wrangler/`，不要提交。
-
-生产构建后再用 Wrangler 看 Worker：
+开发服务器默认是 <http://localhost:3000>。Vite + vinext 在 workerd 中提供 D1 绑定 `DB`，本地数据库在 `.wrangler/`，不要提交。
 
 ```bash
+npm test
+npm run typecheck
 npm run build
+npx astryx doctor --built dist
 npm run start
 ```
 
-部署（需要 Cloudflare 登录，并先把远程 D1 的 `database_id` 写进 `wrangler.jsonc`）：
+`start` 使用构建产物中的 Wrangler 配置运行 Worker。本地不需要浏览器绑定或 Cloudflare OAuth 登录即可开发采集功能。
 
-```bash
-npx wrangler d1 create trackradar
-npx wrangler d1 migrations apply trackradar --remote
-npx wrangler secret put OPENAI_API_KEY
-npx wrangler secret put TAVILY_API_KEY
-npm run deploy
-```
+## 模型配置
 
-`wrangler.jsonc` 里 `workers_dev` 和 `preview_urls` 都是 `false`。合入并重新部署后，`trackradar.<subdomain>.workers.dev` 以及 Preview/Version 的 `*.workers.dev` 会关掉。只在仪表盘里 Disable 不够，下次 deploy 仍可能把 `workers.dev` 重新打开。
+先在配置页设置模型，或把以下变量写入 `.dev.vars`。配置页保存的值优先。密钥不会由配置接口全文回显。
 
-## 环境变量
+| 名称 | 说明 |
+| --- | --- |
+| `OPENAI_API_KEY` | 政策相关性评估、解读和案例补全所需的模型密钥。没有密钥时政策只保存为候选，案例补全使用本地规则 |
+| `OPENAI_BASE_URL` | 可选，兼容 OpenAI Chat Completions 的网关 |
+| `OPENAI_MODEL` | 可选，默认 `gpt-4o-mini` |
 
-写在 `.dev.vars`，不要写进仓库。
+系统不再提供内置对话、会话管理、Tavily 联网搜索或 Browser Run 网页读取。分析和日常简报由办公室 Agent 负责。
 
-| 名称 | 必填 | 说明 |
-| --- | --- | --- |
-| `OPENAI_API_KEY` | 对话需要 | 模型密钥。未设置时对话页给出中文提示，不发起请求。配置页保存的密钥优先于这里。 |
-| `OPENAI_BASE_URL` | 否 | 兼容 OpenAI Chat Completions 的网关地址。配置页可以覆盖。 |
-| `OPENAI_MODEL` | 否 | 默认 `gpt-4o-mini`。配置页可以覆盖。 |
-| `TAVILY_API_KEY` | 联网搜索需要 | Tavily Search 密钥。到 [Tavily 控制台](https://app.tavily.com) 复制。配置页保存的密钥优先于这里。未配置时 `web_search` 返回中文错误，请到配置页填写。 |
+## 采集与看板
 
-D1 绑定名是 `DB`，不是环境变量。Browser Run 绑定名是 `BROWSER`，也不是环境变量，不需要 Browser API Token。
+1. 在配置页启用信源，配置模型和赛道词典。
+2. 在任务页添加每天或每周一的回看任务，也可以点「立即执行」。手动执行和定时执行复用同一套采集流程。
+3. 列表按回看窗口翻页，采集标题、发布日、来源、正文和通知页 PDF 附件，先保存到候选表。
+4. 有模型时按正文评估相关性，过滤低分、无关或口径过宽的内容，再把有价值的解读写入政策页。没有模型时只留候选，不用套话生成政策卡片。
+5. 人工把市场需求、报价或产品素材录入案例页。办公室 Agent 通过只读接口读取入库的政策和案例。
 
-## 对话里打开原网页
+每轮信源正文读取名额和执行时间都有上限，回看一年不代表单次完整采完一年。执行记录包含采集、评分、低分过滤、解读写入的计数和失败原因。
 
-`fetch_page_markdown` 给对话用：库内福利、门槛、如何参与或联络人为空时，按该条原链接把网页转成 Markdown。实现是 `env.BROWSER.quickAction("markdown", { url })`，不走需要长期保存 API Token 的 REST。采集流水线仍用普通 `fetch`，不会改成浏览器兜底。
+政策页保留一段工作室解读、价值分、原文标题、地点和日期，可按赛道筛选、价值分或时间排序。浅解读可以重新读取正文。目录类通知以附件里的产品条目为主体，保留名称、研发单位、简介、意向市场和联系方式；验收公示、入库备案也用于观察政府在推什么、谁在做。
 
-`wrangler.jsonc` 里的 `browser` 绑定默认不写 `remote`。quickAction 在本地模拟里没有实现，未开 remote 时工具会说明要加 `remote: true`。不要把 `remote` 留在默认配置里：没登录时 `npm run dev` 会停在 Cloudflare OAuth，政策和对话的本地开发起不来。
+案例页保留市场在卖或在找什么、价格或信号，以及与工作室能力的关系。OPC 社区、猪八戒、Fiverr、58同城、小红书、闲鱼、淘宝、视频号由人工查找录入，应用不自动爬取。
 
-要实测这个工具：
+价值分是标题线索和规则生成的排序起点，不是调研结论；与模型判断的相关性分分别存储。默认权重：能力匹配 25%、资金/窗口 20%、需求密度 20%、政策热度 15%、竞争 10%（分高表示竞争较低）、demo 可行 10%。
 
-```bash
-npx wrangler login
-```
+主要信源覆盖武汉、苏州、成都、宁波、宁夏/银川、杭州、深圳、西安、北京、上海。成都政务信息因 412 WAF 暂时停用。浙江集约化栏目在静态页缺少条目时读取页面中的 jpaas 列表接口。
 
-然后在 `browser` 上临时加上 `"remote": true`（Wrangler 文档里的本地写法；只影响本地开发，部署后仍是本账号绑定），再 `npm run dev`。也可以整进程 `npx wrangler dev --remote`，那会把 D1 也指到远程，不适合日常。测完把 `remote` 去掉，避免下次启动又要求登录。
+## 页面与接口
 
-Workers Free 每天浏览器时间大约 10 分钟，超出后接口返回 429。只在补读少量原文时调用，不要拿它爬全站。本地一测就会消耗额度。
-
-验证：登录并打开 remote 后，在对话里让助手补某一条政策的空字段。任务页会出现「打开原文」。单测不访问 Cloudflare：`npm test`。
-
-## 对话里联网搜索
-
-`web_search` 和 `fetch_page_markdown` 分工：先 `list_leads`，库内字段空了再打开已有原链；库里仍不够、或用户明确要查网上最新公开信息时，才用 `web_search` 拿标题、链接和短摘要。搜到值得深读的原链后，再用 `fetch_page_markdown` 打开那一页。搜索不代替 `scan_sources` 做政策信源回看，也不用来爬猪八戒、Fiverr 等人工案例站。
-
-密钥写在配置页「联网搜索」，或 `.dev.vars` / `TAVILY_API_KEY`。配置页优先，接口只回显末四位或「使用环境变量」。实现是对 `https://api.tavily.com/search` 的 `fetch`，`search_depth` 固定 `basic`，默认 5 条、最多 10 条，不请求整页正文。任务页成功记「联网搜索：…」，失败记「联网搜索失败：…」。单测 mock `fetch`，不打 Tavily。
-
-## 对话先查再答
-
-默认 `gpt-4o-mini` 没有推理通道。对话要求先 `list_leads`，字段空了再 `fetch_page_markdown`，库内仍不足再用 `web_search`，然后才写结论；思考过程不写进回复。一轮最多 10 步模型调用，避免查库、搜几次、打开一两页就被步数掐掉、来不及作答。
-
-配置页若把 Model 换成 OpenAI 的 o3、o4-mini 或 gpt-5，并且 Base URL 留空或填 `https://api.openai.com/v1`，请求会带 `reasoningEffort: low`，思考发生在接口侧。其它网关不传这个参数。页面没有思考展示位，流式响应里也不下发 reasoning 片段。
-
-## 路由
-
-主导航有五项：政策、案例、对话、任务，以及右侧的配置（模型、提示词、信源、赛道词典）。窄屏也把这五项留在顶栏里，不再收成只剩配置的菜单。
+主导航为政策、案例、任务、配置，窄屏也保留这四项。
 
 | 路径 | 作用 |
 | --- | --- |
-| `/` | 政策。卡片是一段解读、右上角价值分、可点的原文标题，以及底部的发布地点和日期。可按价值分或时间排序。浅解读可以重新读正文 |
+| `/` | 政策看板 |
+| `/cases` | 市场案例、人工录入 |
+| `/tasks` | 定时任务、立即执行和执行记录 |
+| `/settings` | 模型、办公室钥匙、赛道词典、信源、素材站点说明 |
 | `/policies`、`/leads` | 转到政策 |
-| `/cases` | 案例。卡片写市场上在卖或在找什么、价格或信号，以及和智能体、知识库、FDE 的关系。手动录入在这里 |
-| `/chat` | 对话。页宽与政策、案例、任务、配置相同。顶部一条细栏可以新建、切换和删除会话；消息和未发送草稿按会话存在 D1，关掉标签页后还在。采集一年政策在任务页，对话页不再放这个按钮。可对照政策与案例问现在做什么，或要一个能拿去给客户看的 demo |
-| `/tasks` | 定时任务和执行记录。每天或每周一复用同一套回看、筛选、入库 |
 | `/work` | 转到任务 |
-| `/settings` | 配置：模型、联网搜索、提示词、赛道词典、信源开关、常用找素材站点 |
-| `/samples` | 转到案例页的手动录入 |
-| `/tracks`、`/sources`、`/prompts` | 转到配置里对应的区块 |
-| `POST /api/scan` | 按已启用信源回看并写入政策。可带 `taskId` |
-| `GET/POST/PATCH/DELETE /api/tasks` | 定时任务 |
-| `POST /api/opportunities` | 把一条人工素材写入案例 |
-| `POST /api/opportunities/suggest` | 补全赛道、侧、摘要和打分建议。没有密钥时用本地规则 |
-| `POST /api/opportunities/reread` | 有模型时按正文重写解读，无关的从政策页移除。没有密钥时不改。可传 `url` 或 `limit` |
-| `POST /api/samples` | 旧的粘贴解析接口，保留兼容，不是主路径 |
-| `POST /api/sources/fetch` | 通用列表抓取 |
-| `PATCH /api/sources` | 启用或停用一条信源 |
-| `GET/PUT /api/settings` | 读取或保存模型、Tavily 搜索密钥、采集周期和站点说明。响应不含完整密钥 |
-| `PUT /api/prompts` | 更新激活提示词 |
-| `PUT /api/tracks` | 修改一条 T01–T10 的名称、说明和关键词。不能新增或删除赛道 |
-| `GET/POST /api/chat` | 是否已配置密钥 / 流式对话。系统提示附带配置、最近政策和最近案例。工具含 `fetch_page_markdown` 与 `web_search` |
-| `GET/POST /api/chat/sessions` | 列出会话 / 新建会话。消息和草稿按会话隔离 |
-| `GET/PUT/DELETE /api/chat/sessions/:id` | 读取、保存或删除一个会话。删除时消息一起去掉 |
+| `/samples` | 转到案例手动录入 |
+| `/tracks`、`/sources` | 转到配置对应区块 |
+| `POST /api/scan` | 手动回看启用信源并入库，可带 `taskId` |
+| `GET/POST/PATCH/DELETE /api/tasks` | 管理定时任务 |
+| `DELETE /api/work` | 清空执行记录；记录在任务页读取 |
+| `POST /api/opportunities` | 人工录入案例 |
+| `POST /api/opportunities/suggest` | 模型或本地规则补全赛道、摘要和评分建议 |
+| `POST /api/opportunities/reread` | 有模型时按正文重写政策解读、移除无关内容；可带 `url` 或 `limit` |
+| `POST /api/samples` | 旧粘贴解析接口，保留兼容 |
+| `POST /api/sources/fetch` | 信源列表试抓或抓取入库 |
+| `PATCH /api/sources` | 启用、停用信源 |
+| `GET/PUT /api/settings` | 模型、采集配置和素材站点说明，不回显完整密钥 |
+| `PUT /api/tracks` | 修改 T01–T10 名称、说明和关键词，不增删赛道 |
+| `GET/POST/DELETE /api/agent-keys` | 创建、列出、作废办公室读取钥匙 |
+
+旧 `/chat`、`/api/chat` 及其会话接口、`/prompts` 和 `/api/prompts` 已移除，返回 404。配置中的旧对话提示词不参与采集解读。
 
 ## 办公室读取
 
-给办公室 Agent 的安装说明是 `https://trackradar.oak-studio.org/skill.md`。配置页可以创建 Agent API Key，全文只显示一次。写到办公室机器的 `~/.config/trackradar/agent.key`，权限 600。客户端用 `Authorization: Bearer` 调用 `brief` 和 `lead`。没有手机号授权。钥匙不要进入命令或对话。
-
-读取接口与技能页同源：
+安装入口：<https://trackradar.oak-studio.org/skill.md>。配置页创建 Agent API Key，全文只显示一次。用户把钥匙写入办公室机器的 `~/.config/trackradar/agent.key`，权限 600；客户端自行读取文件，通过 `Authorization: Bearer` 认证。钥匙不要进入命令或对话。
 
 | 路径 | 作用 |
 | --- | --- |
-| `GET /skill.md` | 给 Agent 的安装说明 |
+| `GET /skill.md` | 安装说明 |
 | `GET /agent/SKILL.md` | 安装后的技能正文 |
 | `GET /agent/scripts/client.mjs` | 读取客户端 |
-| `POST /api/radar/brief` | 最新一页，或用 `since`、`after_id` 续读更晚入库的线索 |
-| `POST /api/radar/lead` | 按 `id` 读一条。没有这条时 `lead` 为 null |
+| `POST /api/radar/brief` | 最新一页，或用 `since`、`after_id` 增量续读 |
+| `POST /api/radar/lead` | 按 `id` 读取单条，不存在时 `lead` 为 null |
 
-`brief` 不带游标时返回最新 20 条（`limit` 最多 50），按入库时间从旧到新。`cursor` 停在其中最新的一条。下次把 `cursor.created_at` 和 `cursor.id` 传回，只取更晚入库的线索。一次放不下时 `has_more` 为 true。没有新线索时 `items` 为空，游标保持不变。
+`brief` 不带游标时返回最新 20 条，`limit` 最多 50，按入库时间从旧到新排列。下次把 `cursor.created_at` 和 `cursor.id` 作为 `since` 和 `after_id` 传回，只取更晚入库的线索。`has_more` 为 true 时继续取下一页；没有新线索时游标不变。已有线索重新解读不会改变入库时间。
 
-卡片含编号、入库时间、来源、类型、标题、原文链接、赛道、地域、发布日、价值分、相关性、一段解读，以及福利、参与、门槛、联络人、窗口和案例信号。不含模型密钥，也不返回正文附件全文。配置、扫描和对话仍走原来的接口。
+卡片包含来源、类型、标题、原文链接、赛道、地域、发布日、价值分、相关性、解读和政策/案例字段，不返回模型密钥或附件正文全文。同账号 Worker 也可通过 service binding 调用 `RadarApi.brief` 和 `RadarApi.lead`。
 
-`trackradar.oak-studio.org` 挂着 Cloudflare Access。安装页和 `/api/radar` 若要给办公室直接访问，只放行这几条路径。配置、扫描、对话和 `/api/agent-keys` 继续留在 Access 后面。放行之后，读取接口仍校验 Agent API Key，没有钥匙的请求拿不到线索。
+域名挂有 Cloudflare Access。若允许办公室直接访问，仅放行安装说明、技能文件、客户端及 `/api/radar` 路径，读取接口仍校验 Agent API Key。配置、扫描和 `/api/agent-keys` 保持在 Access 后面。每天阅读由办公室宿主安排在北京时间 10:30，避开 10:00 的每日采集。
 
-## D1 表
+## 定时任务与部署
 
-迁移在 `migrations/`。
+`wrangler.jsonc` 中的两条 UTC cron：
 
-- `tracks`：T01–T10。`keywords` 是赛道词典，留空时回看仍用内置词
-- `lead_tracks`：机会和赛道的多对多标签。`leads.track_code` 仍是主赛道，用来打分
-- `sources`：优先地域武汉、苏州、成都、宁波，以及宁夏 / 银川、杭州（门户、滨江、市经信通知文件）、深圳工信局、西安工信与高新、北京经信局（通知公告与政策文件）、上海经信委产业发展与业务类。成都政务信息因 412 瑞数 WAF 先停用。杭州经信和宁波栏目页的列表由 jpaas 接口补齐。宁波收数据局通知公告（算力券）和经信局通知公告，不收单篇。上海业务类栏目仍在，不另加空的 app 通知公告。
-- `keyword_sets`：历史采样关键词，不再作为主路径
-- `leads`：政策和案例共用一张表。`kind` 为 `policy` 或 `case`。`signal` 是案例的价格或信号。`published_at` 是原文发布日，没有则卡片用 `created_at` 标「入库」。政策解读用 `studio_angle`、`subsidy_note`、`participation_note`、`who_can_apply`、`contact_note`。人工录入是 `manual` 且 `kind=case`，信源回看写入是 `agent` 且 `kind=policy`。对话的 `list_leads` 读这些解读字段，并带上候选表里的相关性分
-- `policy_candidates`：回看候选。`stage` 为 `raw`、`scored`、`kept`、`dropped`、`interpreted`。没有模型时停在 `raw`。模型判定无关的停在 `dropped`。解读写入后 `stage=interpreted` 并连到 `leads`
-- `manual_samples`：旧粘贴解析留下的表。主路径不再往这里写
-- `prompt_profiles`：提示词 v1
-- `agent_tasks`：用户添加的每天或每周一任务
-- `crawl_jobs`：执行记录。信源回看、定时任务、试抓、补全、录入和对话工具调用。可关联 `task_id`
-- `app_settings`：配置页保存的模型、Tavily 密钥（`tavily_api_key`）、旧的采集开关，以及 `material_sites` 站点说明。密钥只存在本地库，接口不回显全文
-- `chat_sessions`、`chat_messages`：对话页的多会话。`chat_messages.session_id` 对应会话，关掉标签页后仍在。标题取首条用户消息，否则是「新对话」
+- `0 2 * * *`：每天北京时间 10:00。
+- `0 1 * * 1`：每周一北京时间 09:00。
 
-主路径是：先在配置里放模型和信源，再在对话或任务里回看这些信源大约一年。回看先采集标题、发表时间、出处和正文入库（不因赛道未映射丢掉）。有模型时读正文判断是否与工作室有关，并写一段解读；无关或过宽的不进政策页。没有密钥时只留候选，不用套话写入政策页。执行记录写采集、评了、低分过滤、解读写入。模型评估走和对话相同的聊天接口，不使用结构化输出；失败时这条记录会写上超时或接口状态。`leads.kind` 为 `policy` 或 `case`：信源采集和种子迁成政策，人工录入以及猪八戒、Fiverr 等市场站点迁成案例。一条可以同时打上多个赛道标签。政策页用 `/?track=T01`，案例页用 `/cases?track=T01`，并用条数和近 7 日增减看热度。赛道词典在配置里改，只作提示，不再单独决定丢掉。列表会翻到回看窗口内的后续页，日期取条目旁的发布日，不把文章链接里的长数字当成日期。同试点的验收公示和入库备案优先读正文。通知页上的 PDF 附件会抽文本，附在正文后面交给模型；目录优先保留人工智能、软件、智能体、知识库相关片段，验收名单保留开头。目录类通知以附件里的产品条目为情报主体。摘录按整行保留名称、研发单位、简介、意向市场和联系方式，优先知识库、智能体和软件；服务器、芯片、周界和纯视觉安防只作背景。解读点出两三条对得上的代表性条目，不要只写发布了多少项。卡片仍是一段话，详细条目进摘要，正文保留附件文本。用来定 demo，不只是多收补贴通知。验收公示和入库备案用来看政府在推什么、谁在做。卡片只留这一段解读。预算内再交给模型。OPC 社区、猪八戒、Fiverr、58同城、小红书、闲鱼、淘宝、视频号仍由人工在案例页录入，站点代码里 Fiverr 是 `fiverr`。留下的政策和案例会进入对话：`list_leads` 能看到相关性分和解读字段，用来确定方向和 demo。对话按需用工具：依赖当前政策或案例时再调 `list_leads`，字段空了再用 `fetch_page_markdown` 打开那一条原链接；库内仍不足或用户要查网上公开信息时再用 `web_search`，搜到原链后可再深读。确实要新爬门户时才调 `scan_sources`。不拿会话里的旧工具结果当现状，也不空问确认。这段写在每次都会附上的工具说明里，已保存的提示词由迁移 `0017` 和 `0018` 收成同一句。`fetch_page_markdown` 和 `web_search` 的用法附在每次对话的工具说明里，不另做提示词迁移。粘贴解析不是主路径。
-
-通用列表适配器读取页面里的 `<a>`，优先用 `title`，没有则用内部标题节点。上海产业发展、北京通知公告、深圳工信局通知公告、西安工信局通知公告在开发时可以抽出标题和链接。门户首页可能只有导航。浙江集约化栏目如果静态页抽不到条目，会再请求页面里的 jpaas 列表接口。成都政务信息返回 412，信源先停用。
-
-## 打分
-
-能力匹配 25% · 资金/窗口 20% · 需求密度 20% · 政策热度 15% · 竞争（分高表示竞争更低）10% · demo 可行 10%。
-
-页面上的价值分沿用这套权重，按标题线索估算，用来排序，不是调研结论。没有分的卡片写「未评分」。空的供需侧或站点不显示。
-
-## 定时任务
-
-`wrangler.jsonc` 里有两条 UTC cron：
-
-- `0 2 * * *`：每天 10:00（北京时间）
-- `0 1 * * 1`：每周一 09:00（北京时间）
-
-任务页添加的每日或每周任务到点后，走和对话相同的四步回看，并记下每个信源的采集、评分、低分过滤和解读写入。没有到期任务时写一条跳过。本地可以用 Wrangler 触发：
+到点仅运行已启用且周期匹配的任务，没有到期任务时记录跳过。本地可按实际端口触发：
 
 ```bash
 curl "http://localhost:8787/cdn-cgi/handler/scheduled?cron=0+2+*+*+*"
 ```
 
-端口以 `npm run dev` 或 `npm run start` 的实际输出为准。
+首次部署需登录 Cloudflare，创建 D1，并把真实 `database_id` 写入 Wrangler 配置：
+
+```bash
+npx wrangler d1 create trackradar
+npx wrangler d1 migrations apply trackradar --remote
+npx wrangler secret put OPENAI_API_KEY
+npm run build
+npx astryx doctor --built dist
+npm run deploy
+```
+
+`workers_dev` 和 `preview_urls` 保持 `false`，避免部署重新开放 `*.workers.dev`。
+
+## 数据与兼容
+
+迁移在 `migrations/`，沿用现有迁移链，不删除历史表或数据。
+
+- `tracks`、`lead_tracks`：固定赛道词典及线索的多对多赛道标签，`leads.track_code` 保留主赛道。
+- `sources`：政策信源和启用状态。
+- `policy_candidates`：正文及相关性评估，状态为 `raw`、`scored`、`kept`、`dropped`、`interpreted`。
+- `leads`：政策和案例共表，`kind` 为 `policy` 或 `case`，包括解读、评分、价格信号和时间字段。
+- `agent_tasks`、`crawl_jobs`：定时任务及执行记录，历史对话工具记录仍可查看。
+- `app_settings`：模型、素材站点说明和旧采集配置；历史 Tavily 配置保留但不再读取或编辑。
+- `agent_keys`：办公室钥匙的哈希、前缀、创建时间、使用时间和作废状态，不保存明文。
+- `manual_samples`、`keyword_sets`：旧采样兼容表。
+- `prompt_profiles`、`chat_sessions`、`chat_messages`：历史对话数据保留，应用不再读写，也不提供页面或 API。
 
 ## 非目标
 
-不爬 OPC 社区、猪八戒、Fiverr、58同城、小红书、闲鱼、淘宝、视频号，不自动私信，不把 Playwright 放进同一个 Worker，不做完整 CRM。不做以粘贴解析为主的采样流水线。
+不做内置聊天助手、完整 CRM，不自动私信，不自动爬取人工案例平台，不以粘贴解析作为主流程。

@@ -17,10 +17,4 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ["@astryxdesign/core", "@astryxdesign/theme-neutral"],
   },
-  // 只跳过 SSR 预打包。客户端仍预打包 streamdown，否则 style-to-js 的 CJS 默认导出对不上。
-  ssr: {
-    optimizeDeps: {
-      exclude: ["streamdown"],
-    },
-  },
 });

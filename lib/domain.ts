@@ -136,16 +136,6 @@ export type SampleRow = {
   note: string | null;
 };
 
-export type PromptRow = {
-  id: string;
-  version: string;
-  name: string;
-  system_prompt: string;
-  weights_json: string;
-  is_active: number;
-  updated_at: string | null;
-};
-
 export type KeywordSetRow = {
   id: string;
   name: string;

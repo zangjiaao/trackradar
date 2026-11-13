@@ -30,7 +30,6 @@ export async function POST(request: Request) {
         signal: typeof body.signal === "string" ? body.signal : undefined,
         scores: isScores(body.scores) ? body.scores : undefined,
       },
-      "manual_entry",
     );
     return Response.json({ id: saved.id, lead: saved.lead });
   } catch (error) {

@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { extractListItems } from "../lib/extract-links";
 import { parsePastedSamples } from "../lib/parse-sample";
-import { PROMPT_V1 } from "../lib/prompt";
 import { skeletonScores } from "../lib/scoring";
 
 test("粘贴文本抽出标题和链接", () => {
@@ -52,12 +51,6 @@ test("排除硬件方向", () => {
   const items = parsePastedSamples("机器人关节电机 https://example.com/robot");
   assert.equal(items[0]?.track_guess, null);
   assert.match(items[0]?.note ?? "", /排除方向/);
-});
-
-test("v1 提示词保留关键约束", () => {
-  assert.match(PROMPT_V1, /T01–T10/);
-  assert.match(PROMPT_V1, /不做汽车\/机器人等硬件/);
-  assert.match(PROMPT_V1, /每条保留原链接/);
 });
 
 test("骨架分落在 0 到 100", () => {

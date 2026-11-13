@@ -7,7 +7,7 @@ import { readModelConfig } from "@/lib/settings";
 export type { AssessBatch, ScoreInput };
 
 /**
- * 用和对话相同的 chat completions 读正文并打分。
+ * 用 Chat Completions 读正文并打分。
  * 不走 generateObject：兼容网关常拒绝 json_schema，而普通聊天是通的。
  * 两篇一批、失败原因写在 note 里，不再吞掉异常。
  */

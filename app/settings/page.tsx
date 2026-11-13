@@ -7,35 +7,30 @@ import { AgentKeysForm } from "@/components/agent-keys-form";
 import { DbFallback } from "@/components/db-fallback";
 import { MaterialSitesForm } from "@/components/material-sites-form";
 import { ModelForm } from "@/components/model-form";
-import { TavilyKeyForm } from "@/components/tavily-key-form";
 import { PageHeader } from "@/components/page-header";
-import { PromptEditor } from "@/components/prompt-editor";
 import { SourceList } from "@/components/source-list";
 import { TrackEditor } from "@/components/track-editor";
-import { WEIGHT_LABELS, WEIGHTS } from "@/lib/domain";
-import { listSources, listTracks, getActivePrompt } from "@/lib/queries";
+import { listSources, listTracks } from "@/lib/queries";
 import { listAgentKeys } from "@/lib/agent-key";
 import { getDb } from "@/lib/db";
-import { readMaterialSites, readPublicModel, readPublicTavily } from "@/lib/settings";
+import { readMaterialSites, readPublicModel } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   try {
-    const [model, tavily, agentKeys, sources, tracks, prompt, materialSites] = await Promise.all([
+    const [model, agentKeys, sources, tracks, materialSites] = await Promise.all([
       readPublicModel(),
-      readPublicTavily(),
       listAgentKeys(getDb()).catch(() => []),
       listSources(),
       listTracks(),
-      getActivePrompt(),
       readMaterialSites(),
     ]);
     return (
       <VStack gap={4} className="page-column">
         <PageHeader
           title="配置"
-          description="先配好模型、联网搜索、提示词和信源。对话和任务都会按这里的要求，到已启用信源回看并写入政策。定时任务在任务页，不在这里。"
+          description="配置采集解读使用的模型、信源、赛道词典和办公室读取钥匙。定时任务与执行记录在任务页。"
         />
         <Card>
           <VStack gap={3} id="agent-keys">
@@ -47,29 +42,6 @@ export default async function SettingsPage() {
           <VStack gap={3} id="model">
             <Heading level={2}>模型</Heading>
             <ModelForm initial={model} />
-          </VStack>
-        </Card>
-        <Card>
-          <VStack gap={3} id="search">
-            <Heading level={2}>联网搜索</Heading>
-            <TavilyKeyForm initial={tavily} />
-          </VStack>
-        </Card>
-        <Card>
-          <VStack gap={3} id="requirements">
-            <Heading level={2}>提示词</Heading>
-            <Text type="supporting" as="p">
-              权重：
-              {WEIGHT_LABELS.map((item) => `${item.label} ${Math.round(WEIGHTS[item.key] * 100)}%`).join(" · ")}
-              。对话会在这段文字后附加工具说明和当前机会，附加内容不会写回这里。
-            </Text>
-            {prompt ? (
-              <PromptEditor initial={prompt.system_prompt} version={prompt.version} />
-            ) : (
-              <Text type="supporting" as="p">
-                没有激活的提示词。请先执行 npm run db:migrate。
-              </Text>
-            )}
           </VStack>
         </Card>
         <Card>
@@ -93,7 +65,7 @@ export default async function SettingsPage() {
           <VStack gap={3} id="materials">
             <Heading level={2}>常用找素材的站点</Heading>
             <Text type="supporting" as="p">
-              记下你常去人工查找的地方。对话和补全会读到这段说明。应用不会爬这些网站。
+              记下你常去人工查找的地方。案例补全会读到这段说明。应用不会爬这些网站。
             </Text>
             <MaterialSitesForm initial={materialSites} />
           </VStack>
@@ -101,8 +73,8 @@ export default async function SettingsPage() {
         <VStack gap={3} id="sources">
           <Heading level={2}>信源</Heading>
           <Text type="supporting" as="p">
-            关掉的信源不会被对话或定时任务访问。试抓仍可只预览。写入政策页需要模型读正文；没有密钥时只留下候选。自动回看在{" "}
-            <Link href="/chat">对话</Link>和<Link href="/tasks">任务</Link>。
+            关掉的信源不会被定时任务访问。试抓仍可只预览。写入政策页需要模型读正文；没有密钥时只留下候选。自动回看在{" "}
+            <Link href="/tasks">任务页</Link>配置，也可以立即执行。
           </Text>
           <SourceList sources={sources} />
         </VStack>

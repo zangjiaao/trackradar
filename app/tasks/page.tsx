@@ -20,7 +20,7 @@ export default async function TasksPage() {
       <VStack gap={4} className="page-column">
         <PageHeader
           title="任务"
-          description="添加每天或每周一的定时任务，让助手按配置里已启用的信源把新政策写入政策页。下面同时留下每次去过哪些信源、写入了多少条。对话里的回看也记在这里。"
+          description="添加每天或每周一的定时任务，按配置里已启用的信源采集并解读新政策。也可以立即执行，下面会记录访问的信源和写入结果。"
         />
         <Card>
           <VStack gap={3}>

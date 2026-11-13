@@ -19,7 +19,7 @@ export function OpportunityEntry({ tracks }: { tracks: TrackOption[] }) {
           header={
             <DialogHeader
               title="新增案例"
-              subtitle="猪八戒、OPC、58、小红书、Fiverr 上看到的求购或接单写在这里。对话里可以和政策放在一起，问现在做什么有助于发展。"
+              subtitle="猪八戒、OPC、58、小红书、Fiverr 上看到的求购或接单写在这里。录入后会显示在案例页，也供办公室 Agent 结合政策分析。"
               onOpenChange={setOpen}
             />
           }

@@ -5,7 +5,7 @@ import { finalizeOpportunity, type OpportunityFields } from "@/lib/opportunity-d
 import { loadTrackDictionaries } from "@/lib/queries";
 import { recordWork } from "@/lib/work-log";
 
-export async function saveOpportunity(input: OpportunityFields, kind: "manual_entry" | "tool_add_opportunity") {
+export async function saveOpportunity(input: OpportunityFields) {
   const lead = finalizeOpportunity(input, await loadTrackDictionaries());
   const database = getDb();
   const existing = await database.prepare("SELECT id FROM leads WHERE url = ?").bind(lead.url).first<{ id: string }>();
@@ -41,7 +41,6 @@ export async function saveOpportunity(input: OpportunityFields, kind: "manual_en
     )
     .run();
   await writeLeadTracks(database, id, lead.track_codes);
-  const verb = kind === "manual_entry" ? "录入案例" : "对话写入案例";
-  await recordWork({ kind, status: "done", message: `${verb}：${lead.title}｜${lead.url}` });
+  await recordWork({ kind: "manual_entry", status: "done", message: `录入案例：${lead.title}｜${lead.url}` });
   return { id, lead };
 }
