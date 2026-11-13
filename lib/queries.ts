@@ -67,12 +67,13 @@ async function attachTrackCodes(database: D1Database, rows: LeadQueryRow[]): Pro
 const LEAD_COLUMNS = `l.id, l.source_id, l.track_code, l.title, l.url, l.summary, l.relevant_excerpt, l.opportunity_note,
   l.studio_angle, l.subsidy_note, l.participation_note, l.who_can_apply, l.contact_note, l.window_note,
   l.region, l.side, l.site, l.signal, l.kind, l.published_at, l.score_capability, l.score_funding, l.score_demand, l.score_policy,
-  l.score_competition, l.score_demo, l.score_total, l.origin, l.created_at, s.name AS source_name,
-  pc.relevance_score AS relevance_score, pc.relevance_reason AS relevance_reason`;
+  l.score_competition, l.score_demo, l.score_total, l.origin, l.created_at, COALESCE(s.name, CASE WHEN l.site = 'opcquan' THEN 'OPC圈' END) AS source_name,
+  COALESCE(pc.relevance_score, cc.relevance_score) AS relevance_score, COALESCE(pc.relevance_reason, cc.relevance_reason) AS relevance_reason`;
 
 const LEAD_FROM = `FROM leads l
   LEFT JOIN sources s ON s.id = l.source_id
-  LEFT JOIN policy_candidates pc ON pc.lead_id = l.id AND pc.stage = 'interpreted'`;
+  LEFT JOIN policy_candidates pc ON pc.lead_id = l.id AND pc.stage = 'interpreted'
+  LEFT JOIN case_candidates cc ON cc.lead_id = l.id AND cc.stage = 'interpreted'`;
 
 export async function listLeads(
   limit = 50,
@@ -99,7 +100,7 @@ export async function listLeads(
       OR IFNULL(l.participation_note, '') LIKE ? OR IFNULL(l.who_can_apply, '') LIKE ?
       OR IFNULL(l.contact_note, '') LIKE ? OR IFNULL(l.signal, '') LIKE ?
       OR IFNULL(l.opportunity_note, '') LIKE ? OR IFNULL(l.summary, '') LIKE ?
-      OR IFNULL(pc.relevance_reason, '') LIKE ?
+      OR IFNULL(COALESCE(pc.relevance_reason, cc.relevance_reason), '') LIKE ?
     )`);
     binds.push(term, term, term, term, term, term, term, term, term, term);
   }

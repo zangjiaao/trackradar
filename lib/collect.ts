@@ -2,6 +2,7 @@ export const DAILY_CRON = "0 2 * * *";
 export const WEEKLY_CRON = "0 1 * * 1";
 
 export type Cadence = "daily" | "weekly";
+export type TaskCadence = Cadence | "manual";
 
 export type CollectConfig = {
   enabled: boolean;
@@ -12,7 +13,8 @@ export function isCadence(value: string): value is Cadence {
   return value === "daily" || value === "weekly";
 }
 
-export function cadenceLabel(cadence: Cadence): string {
+export function cadenceLabel(cadence: TaskCadence): string {
+  if (cadence === "manual") return "仅手动执行";
   return cadence === "weekly" ? "每周一 09:00（北京时间）" : "每天 10:00（北京时间）";
 }
 
@@ -30,14 +32,14 @@ export function decideCron(cron: string, collect: CollectConfig): "run" | "skip"
 }
 
 export type ScheduledTask = {
-  cadence: Cadence;
+  cadence: TaskCadence;
   enabled: boolean;
 };
 
 /** 每天的任务只在每天那条 Cron 到期，每周的任务只在周一那条 Cron 到期。 */
 export function tasksDue<T extends ScheduledTask>(cron: string, tasks: T[]): T[] {
   return tasks.filter((task) => {
-    if (!task.enabled) return false;
+    if (!task.enabled || task.cadence === "manual") return false;
     if (task.cadence === "weekly") return cron === WEEKLY_CRON;
     return cron === DAILY_CRON;
   });

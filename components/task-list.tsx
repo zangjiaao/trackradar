@@ -7,19 +7,21 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Switch } from "@astryxdesign/core/Switch";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { cadenceLabel, type Cadence } from "@/lib/collect";
+import { cadenceLabel } from "@/lib/collect";
 import type { AgentTaskRow } from "@/lib/domain";
 
 export function TaskList({ tasks }: { tasks: AgentTaskRow[] }) {
   const router = useRouter();
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [action, setAction] = useState<"run" | "toggle" | "delete" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [enabled, setEnabled] = useState<Record<string, boolean>>(() => Object.fromEntries(tasks.map((task) => [task.id, task.enabled === 1])));
+  const [enabled, setEnabled] = useState<Record<string, boolean>>({});
 
   async function toggle(task: AgentTaskRow, value: boolean) {
-    const previous = enabled[task.id];
+    const previous = enabled[task.id] ?? task.enabled === 1;
     setEnabled((current) => ({ ...current, [task.id]: value }));
     setPendingId(task.id);
+    setAction("toggle");
     try {
       const response = await fetch("/api/tasks", {
         method: "PATCH",
@@ -28,6 +30,10 @@ export function TaskList({ tasks }: { tasks: AgentTaskRow[] }) {
       });
       if (!response.ok) setEnabled((current) => ({ ...current, [task.id]: previous }));
       else router.refresh();
+    } catch {
+      setEnabled((current) => ({ ...current, [task.id]: previous }));
+      setMessage("网络请求失败，请重试。");
+      router.refresh();
     } finally {
       setPendingId(null);
     }
@@ -35,6 +41,7 @@ export function TaskList({ tasks }: { tasks: AgentTaskRow[] }) {
 
   async function run(task: AgentTaskRow) {
     setPendingId(task.id);
+    setAction("run");
     setMessage(`正在执行「${task.name}」。`);
     try {
       const response = await fetch("/api/scan", {
@@ -44,7 +51,10 @@ export function TaskList({ tasks }: { tasks: AgentTaskRow[] }) {
       });
       const body = (await response.json()) as { summary?: string; error?: string };
       setMessage(response.ok ? (body.summary ?? "执行完成。") : (body.error ?? "执行失败"));
-      if (response.ok) router.refresh();
+      router.refresh();
+    } catch {
+      setMessage("网络请求失败，请重试。");
+      router.refresh();
     } finally {
       setPendingId(null);
     }
@@ -52,13 +62,17 @@ export function TaskList({ tasks }: { tasks: AgentTaskRow[] }) {
 
   async function remove(task: AgentTaskRow) {
     setPendingId(task.id);
+    setAction("delete");
     try {
       const response = await fetch("/api/tasks", {
         method: "DELETE",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ id: task.id }),
       });
-      if (response.ok) router.refresh();
+      router.refresh();
+    } catch {
+      setMessage("网络请求失败，请重试。");
+      router.refresh();
     } finally {
       setPendingId(null);
     }
@@ -67,7 +81,7 @@ export function TaskList({ tasks }: { tasks: AgentTaskRow[] }) {
   if (tasks.length === 0) {
     return (
       <Text type="supporting" as="p">
-        还没有定时任务。添加后，每天 10:00 或每周一 09:00（北京时间）会自动回看。
+        还没有采集任务。点击「添加任务」，选择定时或仅手动执行。
       </Text>
     );
   }
@@ -80,14 +94,14 @@ export function TaskList({ tasks }: { tasks: AgentTaskRow[] }) {
             <VStack gap={1}>
               <Text weight="medium">{task.name}</Text>
               <Text type="supporting">
-                {cadenceLabel(task.cadence as Cadence)} · 回看 {task.lookback_days} 天
+                {task.task_type === "opc" ? "OPC圈产品与需求" : "政策信源"} · {cadenceLabel(task.cadence)} · 回看 {task.lookback_days} 天
               </Text>
               <Text type="supporting">{task.instruction}</Text>
             </VStack>
-            <Switch label="启用" value={Boolean(enabled[task.id])} isDisabled={pendingId === task.id} onChange={(value) => void toggle(task, value)} />
+            {task.cadence !== "manual" ? <Switch label="自动执行" value={enabled[task.id] ?? task.enabled === 1} isDisabled={pendingId !== null} onChange={(value) => void toggle(task, value)} /> : null}
           </HStack>
           <HStack gap={2} wrap="wrap">
-            <Button label={pendingId === task.id ? "执行中" : "立即执行"} variant="secondary" isDisabled={pendingId !== null} onClick={() => void run(task)} />
+            <Button label={pendingId === task.id && action === "run" ? "执行中" : "立即执行"} variant="secondary" isDisabled={pendingId !== null} onClick={() => void run(task)} />
             <Button label="删除" variant="ghost" isDisabled={pendingId !== null} onClick={() => void remove(task)} />
           </HStack>
         </VStack>

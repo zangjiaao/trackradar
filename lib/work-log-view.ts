@@ -16,6 +16,7 @@ export type WorkLogView = {
 };
 
 export const WORK_KIND_LABEL: Record<string, string> = {
+  opc_scan: "OPC 案例采集",
   policy_scan: "政策巡检",
   weekly_report: "周报",
   manual_fetch: "信源试抓",
@@ -32,6 +33,7 @@ export const WORK_KIND_LABEL: Record<string, string> = {
 };
 
 export const WORK_STATUS_LABEL: Record<string, string> = {
+  partial: "未完成",
   placeholder: "占位",
   skipped: "跳过",
   done: "完成",
