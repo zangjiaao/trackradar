@@ -165,7 +165,7 @@ export type FinalOpportunity = {
   scores: ScoreParts;
 };
 
-/** 把表单或对话工具的字段收成一条可入库的机会。未给的赛道、侧和分数用本地规则补。 */
+/** 把表单的字段收成一条可入库的机会。未给的赛道、侧和分数用本地规则补。 */
 export function finalizeOpportunity(input: OpportunityFields, dictionaries?: TrackDictionary[]): FinalOpportunity {
   const title = input.title.trim().slice(0, 300);
   const url = input.url.trim().slice(0, 2000);

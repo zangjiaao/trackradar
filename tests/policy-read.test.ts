@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ASSESS_INSTRUCTIONS } from "../lib/policy-assess.ts";
 import { readPolicy } from "../lib/policy-read.ts";
-import { PROMPT_V1, STUDIO_ADVICE, TOOL_ADDENDUM } from "../lib/prompt.ts";
 
 test("服务商资源池会写出相关片段和机会", () => {
   const reading = readPolicy("关于征集人工智能应用服务商资源池的通知");
@@ -24,57 +22,4 @@ test("智能体让政务标题变得可入库", () => {
   assert.equal(reading.keep, true);
   assert.equal(reading.tracks[0], "T08");
   assert.match(reading.opportunity, /demo|助手|软件/);
-});
-
-test("默认提示词要求解读政策并过滤过宽口径", () => {
-  assert.match(PROMPT_V1, /T01–T10/);
-  assert.match(PROMPT_V1, /不做汽车\/机器人等硬件/);
-  assert.match(PROMPT_V1, /每条保留原链接/);
-  assert.match(PROMPT_V1, /政策地域：武汉、苏州、成都、宁波、宁夏、杭州、深圳、西安、北京、上海/);
-  assert.match(PROMPT_V1, /先解读/);
-  assert.match(PROMPT_V1, /过宽口径/);
-  assert.match(PROMPT_V1, /Fiverr/);
-  assert.match(PROMPT_V1, /秀肌肉/);
-  assert.match(PROMPT_V1, /UI\/UX/);
-  assert.match(PROMPT_V1, /先接小单/);
-  assert.match(PROMPT_V1, /有助于发展/);
-  assert.match(PROMPT_V1, /回看分四步/);
-  assert.match(PROMPT_V1, /相关性分/);
-  assert.match(PROMPT_V1, /确定方向和 demo/);
-  assert.match(PROMPT_V1, /不用套话写入政策页/);
-  assert.match(PROMPT_V1, /不要仅因是名单公示就丢掉/);
-  assert.match(PROMPT_V1, /政府已经采纳/);
-  assert.match(PROMPT_V1, /产品条目为情报主体/);
-  assert.match(PROMPT_V1, /政府侧产品/);
-  assert.match(PROMPT_V1, /不要只按奖补通知选题/);
-  assert.match(PROMPT_V1, /代表性条目/);
-  assert.match(PROMPT_V1, /不要只写发布了多少项/);
-  assert.match(PROMPT_V1, /研发单位/);
-  assert.match(ASSESS_INSTRUCTIONS, /顺口/);
-  assert.match(ASSESS_INSTRUCTIONS, /reading 留空/);
-  assert.match(TOOL_ADDENDUM, /采集、评了、低分过滤、解读写入/);
-  assert.match(TOOL_ADDENDUM, /相关性分/);
-  assert.match(TOOL_ADDENDUM, /PDF 附件会抽进正文/);
-  assert.match(TOOL_ADDENDUM, /产品条目为情报主体/);
-  assert.match(TOOL_ADDENDUM, /卡片只显示一段解读/);
-  assert.match(TOOL_ADDENDUM, /研发单位/);
-  assert.match(TOOL_ADDENDUM, /纯视觉安防降为背景/);
-  assert.match(STUDIO_ADVICE, /按需用工具/);
-  assert.match(PROMPT_V1, /按需用工具/);
-  assert.match(PROMPT_V1, /不需要新鲜数据就不要调/);
-  assert.match(PROMPT_V1, /别空问确认/);
-  assert.match(TOOL_ADDENDUM, /按需用工具/);
-  assert.match(TOOL_ADDENDUM, /只有确实要新爬门户时才调 scan_sources/);
-  assert.match(TOOL_ADDENDUM, /别拿会话里更早的工具结果当现状/);
-  assert.match(TOOL_ADDENDUM, /没给链接/);
-  assert.match(TOOL_ADDENDUM, /fetch_page_markdown/);
-  assert.match(TOOL_ADDENDUM, /不要凭空编这些字段/);
-  assert.match(TOOL_ADDENDUM, /不要把思考过程写进回复/);
-  assert.match(TOOL_ADDENDUM, /先调 list_leads/);
-  assert.match(TOOL_ADDENDUM, /库内仍不足、或用户明确要查网上最新公开信息时，再用 web_search/);
-  assert.match(TOOL_ADDENDUM, /搜到有价值的原链后，可用 fetch_page_markdown 深读/);
-  assert.match(TOOL_ADDENDUM, /不代替 scan_sources 做政策信源回看/);
-  assert.match(TOOL_ADDENDUM, /不要用搜索去爬猪八戒、Fiverr/);
-  assert.doesNotMatch(TOOL_ADDENDUM, /立刻再调 list_leads/);
-  assert.doesNotMatch(PROMPT_V1, /不要问选哪一种/);
 });

@@ -59,7 +59,7 @@ export function WorkLog({ jobs }: { jobs: WorkLogItem[] }) {
       </HStack>
       {jobs.length === 0 ? (
         <Text type="supporting" as="p">
-          还没有记录。可以在对话里回看信源，或对上面的任务点立即执行。
+          还没有记录。添加定时任务，或对上面的任务点立即执行。
         </Text>
       ) : (
         <VStack gap={2}>

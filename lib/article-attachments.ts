@@ -222,7 +222,7 @@ export function storedNoticeBody(title: string, text: string, limit = NOTICE_BOD
 
 /**
  * 入库摘要里的目录明细：对口产品行，含名称、单位、简介、市场和联系方式。
- * 卡片不用这段，对话可以据此追问。没有序号表时，用摘录里带这些词的行。
+ * 卡片不用这段，办公室可以读取明细。没有序号表时，用摘录里带这些词的行。
  */
 export function catalogEntryDigest(body: string | null | undefined, limit = 1_600): string {
   const text = body ?? "";

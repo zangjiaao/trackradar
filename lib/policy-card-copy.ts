@@ -1,7 +1,7 @@
 import { formatValueScore } from "@/lib/lead-presentation";
 import { isTemplateSentence } from "@/lib/policy-assess";
 
-/** 卡片上不展示的占位句。分字段仍留在库里给对话用。 */
+/** 卡片上不展示的占位句。分字段仍留在库里供办公室读取。 */
 const NOISE = /与\s*T\d{2}|映射\s*T\d{2}|做个?\s*demo|demo 或申报|分数是价值分|分数是骨架分|信源回看约|列表页骨架|种子线索|启发式/;
 
 export type PolicyCardCopy = {

@@ -5,7 +5,7 @@ import { ingestPolicyList } from "@/lib/policy-ingest";
 import { loadTrackDictionaries } from "@/lib/queries";
 import { regionsInText } from "@/lib/source-window";
 
-export type ScanTrigger = "chat" | "schedule" | "manual";
+export type ScanTrigger = "schedule" | "manual";
 
 export type ScanRequest = {
   lookbackDays: number;
@@ -38,8 +38,7 @@ export type ScanResult = {
 
 function triggerLabel(trigger: ScanTrigger): string {
   if (trigger === "schedule") return "定时执行";
-  if (trigger === "manual") return "立即执行";
-  return "对话触发";
+  return "立即执行";
 }
 
 function sourceMatches(source: SourceRow, hints: string[]): boolean {

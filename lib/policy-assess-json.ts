@@ -290,7 +290,7 @@ export async function collectAssessments(input: {
   return { mode: "agent", byUrl, note };
 }
 
-/** 和对话一样只发普通文本，要求模型自己返回 JSON，不附带 json_schema。 */
+/** 通过 Chat Completions 发送普通文本，要求模型自己返回 JSON，不附带 json_schema。 */
 export function assessmentPrompt(items: ScoreInput[]): string {
   const body = items
     .map((item, index) =>

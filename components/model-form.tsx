@@ -32,7 +32,7 @@ export function ModelForm({ initial }: { initial: PublicModelConfig }) {
         return;
       }
       setApiKey("");
-      setMessage(clearKey ? "已改回环境变量。若 .dev.vars 里没有密钥，对话会停用。" : "模型配置已保存。对话会使用这份设置。");
+      setMessage(clearKey ? "已改回环境变量。若未配置密钥，采集只保存候选，不生成政策解读。" : "模型配置已保存。政策解读和案例补全会使用这份设置。");
       router.refresh();
     } finally {
       setPending(false);
@@ -67,7 +67,7 @@ export function ModelForm({ initial }: { initial: PublicModelConfig }) {
       />
       <TextInput label="Model" value={model} onChange={setModel} placeholder="gpt-4o-mini" width="100%" />
       <Text type="supporting" as="p">
-        默认 gpt-4o-mini 没有推理通道，不需要为了「先想再答」改模型。若要让官方接口侧先思考，把 Model 换成 o3、o4-mini 或 gpt-5，Base URL 留空或填 https://api.openai.com/v1。其它网关不会附带 reasoning 参数，以免请求被拒。思考过程不会写进回复。
+        模型用于政策相关性评估、解读和案例补全。默认 gpt-4o-mini，也可以配置兼容 OpenAI Chat Completions 的网关。
       </Text>
       <HStack gap={2} wrap="wrap" vAlign="center">
         <Button label={pending ? "保存中" : "保存模型"} variant="primary" isDisabled={pending || model.trim().length === 0} onClick={() => void save(false)} />

@@ -1,4 +1,4 @@
-import type { KeywordSetRow, LeadRow, ParsedSample, Platform, PromptRow, SampleRow, Side, SourceRow, TrackRow } from "./domain";
+import type { KeywordSetRow, LeadRow, ParsedSample, Platform, SampleRow, Side, SourceRow, TrackRow } from "./domain";
 import { isPlatform, isSide } from "./domain";
 import { getDb } from "./db";
 import { fetchPolicyList } from "./fetch-list";
@@ -153,26 +153,6 @@ export async function listKeywordSets(): Promise<KeywordSetRow[]> {
   return results;
 }
 
-export async function getActivePrompt(): Promise<PromptRow | null> {
-  return getDb()
-    .prepare(
-      `SELECT id, version, name, system_prompt, weights_json, is_active, updated_at
-       FROM prompt_profiles WHERE is_active = 1 ORDER BY updated_at DESC LIMIT 1`,
-    )
-    .first<PromptRow>();
-}
-
-export async function saveActivePrompt(systemPrompt: string): Promise<void> {
-  const text = systemPrompt.trim();
-  if (text.length < 20) throw new Error("提示词过短。");
-  if (text.length > 8000) throw new Error("提示词过长。");
-  const now = new Date().toISOString();
-  await getDb()
-    .prepare("UPDATE prompt_profiles SET system_prompt = ?, updated_at = ? WHERE is_active = 1")
-    .bind(text, now)
-    .run();
-}
-
 export async function counts(): Promise<{ tracks: number; leads: number; samples: number; sources: number }> {
   const row = await getDb()
     .prepare(
@@ -291,39 +271,5 @@ export async function fetchSourcePreview(sourceId: string, save: boolean) {
     items: fetched.items.map((item) => ({ ...item, track_guess: guessTrack(item.title, dictionaries) })),
     error: fetched.error ?? null,
     saved,
-  };
-}
-
-export async function searchSources(input: { region?: string; keyword?: string; fetch?: boolean }) {
-  const sources = await listSources();
-  const region = input.region?.trim();
-  const keyword = input.keyword?.trim();
-  const matched = sources.filter((source) => {
-    if (region && !source.region.includes(region) && !source.name.includes(region)) return false;
-    if (keyword && !`${source.name} ${source.notes ?? ""}`.includes(keyword)) return false;
-    return true;
-  });
-  const previews = [];
-  if (input.fetch) {
-    for (const source of matched.filter((item) => item.enabled).slice(0, 2)) {
-      const fetched = await fetchPolicyList(source.list_url, { lookbackDays: 365 });
-      previews.push({
-        source_id: source.id,
-        name: source.name,
-        list_url: source.list_url,
-        error: fetched.error ?? null,
-        items: fetched.items.slice(0, 8),
-      });
-    }
-  }
-  return {
-    sources: matched.map((source) => ({
-      id: source.id,
-      region: source.region,
-      name: source.name,
-      list_url: source.list_url,
-      notes: source.notes,
-    })),
-    previews,
   };
 }
