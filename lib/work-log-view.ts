@@ -99,6 +99,28 @@ export function presentWorkMessage(message: string | null | undefined): WorkLogV
   return { title: text.length > 42 ? `${text.slice(0, 42)}…` : text, chips: body.chips, notes: body.notes };
 }
 
+/** Keep the list scannable; all secondary counts and prose remain in details. */
+export function summarizeWorkMessage(job: Pick<WorkLogItem, "message" | "status">) {
+  const view = presentWorkMessage(job.message);
+  const chips = view.chips.filter((chip) => chip !== view.title);
+  const notes = view.notes.filter((note) => note !== view.title);
+  const important = chips.filter((chip) => /^(?:新增候选|采集|评了|低分过滤|过滤|解读写入|写入案例|待筛选)\s*\d/.test(chip));
+  const notice = job.status === "running"
+    ? notes.find((note) => /正在/.test(note)) ?? notes[0] ?? null
+    : ["failed", "partial", "skipped"].includes(job.status)
+      ? [...chips, ...notes].find((note) => /失败|未返回|未完成|未配置|待筛选|超时|中断|重试|稍后|timeout|aborted|HTTP\s+\d{3}/i.test(note)
+        && !/^列表\s+https?:/i.test(note) && !important.includes(note))
+        ?? notes.find((note) => !/^列表\s+https?:/i.test(note)) ?? null
+      : null;
+  const metrics = (important.length ? important : chips.slice(0, 3)).filter((chip) => chip !== notice);
+  return {
+    title: view.title,
+    metrics,
+    notice,
+    details: [...chips.filter((chip) => !metrics.includes(chip) && chip !== notice), ...notes.filter((note) => note !== notice)],
+  };
+}
+
 /** 执行记录时间按北京时间显示。 */
 export function formatWorkTime(iso: string): string {
   const date = new Date(iso);

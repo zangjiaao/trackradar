@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
+import { Collapsible } from "@astryxdesign/core/Collapsible";
+import { List, ListItem } from "@astryxdesign/core/List";
+import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -13,9 +16,17 @@ import {
   WORK_KIND_LABEL,
   WORK_STATUS_LABEL,
   formatWorkTime,
-  presentWorkMessage,
+  summarizeWorkMessage,
   type WorkLogItem,
 } from "@/lib/work-log-view";
+
+function statusVariant(status: string): "success" | "error" | "warning" | "accent" | "neutral" {
+  if (status === "done") return "success";
+  if (status === "failed") return "error";
+  if (status === "partial" || status === "skipped") return "warning";
+  if (status === "running") return "accent";
+  return "neutral";
+}
 
 export function WorkLog({ jobs }: { jobs: WorkLogItem[] }) {
   const router = useRouter();
@@ -53,40 +64,61 @@ export function WorkLog({ jobs }: { jobs: WorkLogItem[] }) {
           还没有记录。添加定时任务，或对上面的任务点立即执行。
         </Text>
       ) : (
-        <VStack gap={2}>
+        <List density="spacious" edge="flush" hasDividers>
           {jobs.map((job) => {
-            const view = presentWorkMessage(job.message);
+            const view = summarizeWorkMessage(job);
             const kind = WORK_KIND_LABEL[job.kind] ?? job.kind;
+            const status = WORK_STATUS_LABEL[job.status] ?? job.status;
             const where = [job.task_name, job.source_region && job.source_name ? `${job.source_region} · ${job.source_name}` : job.source_name]
               .filter((part): part is string => Boolean(part))
               .filter((part) => !view.title.includes(part.replace(" · ", "·")))
               .join(" · ");
             return (
-              <VStack key={job.id} gap={2}>
-                <HStack gap={2} wrap="wrap" vAlign="center" justify="between">
-                  <HStack gap={2} wrap="wrap" vAlign="center">
-                    <Text weight="medium">{view.title}</Text>
-                    <Text type="supporting">{WORK_STATUS_LABEL[job.status] ?? job.status}</Text>
+              <ListItem
+                key={job.id}
+                align="start"
+                label={
+                  <HStack gap={3} wrap="wrap" vAlign="center" justify="between">
+                    <HStack gap={2} wrap="wrap" vAlign="center">
+                      <StatusDot variant={statusVariant(job.status)} label={status} />
+                      <Text weight="medium">{status}</Text>
+                      <Text weight="medium" wordBreak="break-word">{view.title}</Text>
+                    </HStack>
+                    <Text type="supporting" hasTabularNumbers>{formatWorkTime(job.created_at)}</Text>
                   </HStack>
-                  <Text type="supporting">{formatWorkTime(job.created_at)}</Text>
-                </HStack>
-                <Text type="supporting">{where ? `${kind} · ${where}` : kind}</Text>
-                {view.chips.length > 0 ? (
-                  <HStack gap={2} wrap="wrap">
-                    {view.chips.map((chip, index) => (
-                      <Text key={`${chip}-${index}`}>{chip}</Text>
-                    ))}
-                  </HStack>
-                ) : null}
-                {view.notes.map((note, index) => (
-                  <Text key={`${note}-${index}`} as="p">
-                    {note}
-                  </Text>
-                ))}
-              </VStack>
+                }
+                description={
+                  <VStack gap={2} paddingBlock={2}>
+                    <Text type="supporting">{where ? `${kind} · ${where}` : kind}</Text>
+                    {view.metrics.length > 0 ? (
+                      <HStack gap={4} wrap="wrap">
+                        {view.metrics.map((metric, index) => {
+                          const count = metric.match(/^(.*?)\s*(\d+)(.*)$/);
+                          return (
+                            <HStack key={`${metric}-${index}`} gap={1} vAlign="center">
+                              <Text type="supporting">{count?.[1]?.trim() || metric}</Text>
+                              {count ? <Text weight="medium" hasTabularNumbers>{count[2]}{count[3]}</Text> : null}
+                            </HStack>
+                          );
+                        })}
+                      </HStack>
+                    ) : null}
+                    {view.notice ? <Text as="p" wordBreak="break-word">{view.notice}</Text> : null}
+                    {view.details.length > 0 ? (
+                      <Collapsible trigger={<Text type="supporting">查看执行详情</Text>} defaultIsOpen={false} chevronPosition="start">
+                        <VStack gap={1}>
+                          {view.details.map((note, index) => (
+                            <Text key={`${index}-${note}`} as="p" type="supporting" wordBreak="break-word">{note}</Text>
+                          ))}
+                        </VStack>
+                      </Collapsible>
+                    ) : null}
+                  </VStack>
+                }
+              />
             );
           })}
-        </VStack>
+        </List>
       )}
       <Dialog isOpen={confirming} onOpenChange={setConfirming} purpose="info">
         <Layout
