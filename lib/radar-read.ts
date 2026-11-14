@@ -1,4 +1,5 @@
-import type { LeadRow } from "./domain";
+import { attachCaseAuthors } from "./case-author";
+import type { CaseAuthorFields, LeadRow } from "./domain";
 import { leadBrief } from "./lead-brief";
 import { sortTrackCodes } from "./lead-tracks";
 
@@ -13,8 +14,8 @@ const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
 const LEAD_COLUMNS = `l.id, l.source_id, l.track_code, l.title, l.url, l.summary, l.relevant_excerpt, l.opportunity_note,
   l.studio_angle, l.subsidy_note, l.participation_note, l.who_can_apply, l.contact_note, l.window_note,
   l.region, l.side, l.site, l.signal, l.kind, l.published_at, l.score_capability, l.score_funding, l.score_demand, l.score_policy,
-  l.score_competition, l.score_demo, l.score_total, l.origin, l.created_at, s.name AS source_name,
-  pc.relevance_score AS relevance_score, pc.relevance_reason AS relevance_reason`;
+  l.score_competition, l.score_demo, l.score_total, l.origin, l.created_at, COALESCE(s.name, CASE WHEN l.site = 'opcquan' THEN 'OPC圈' END) AS source_name,
+  COALESCE(pc.relevance_score, cc.relevance_score) AS relevance_score, COALESCE(pc.relevance_reason, cc.relevance_reason) AS relevance_reason`;
 
 const LEAD_JOINS = `FROM leads l
   LEFT JOIN sources s ON s.id = l.source_id
@@ -23,7 +24,8 @@ const LEAD_JOINS = `FROM leads l
     WHERE pc2.lead_id = l.id AND pc2.stage = 'interpreted'
     ORDER BY pc2.updated_at DESC, pc2.id DESC
     LIMIT 1
-  )`;
+  )
+  LEFT JOIN case_candidates cc ON cc.lead_id = l.id AND cc.stage = 'interpreted'`;
 
 export class RadarInputError extends Error {
   constructor(message: string) {
@@ -34,7 +36,7 @@ export class RadarInputError extends Error {
 
 export type RadarCursor = { created_at: string; id: string | null };
 
-export type RadarCard = {
+export type RadarCard = CaseAuthorFields & {
   id: string;
   created_at: string;
   source_name: string | null;
@@ -66,7 +68,7 @@ export type RadarBrief = {
   has_more: boolean;
 };
 
-type LeadQueryRow = Omit<LeadRow, "track_codes">;
+type LeadQueryRow = Omit<LeadRow, "track_codes" | "author" | "related_cases" | "related_cases_count">;
 
 /** 没有游标时给最新一页。带上上次游标后，只给更晚入库的线索。 */
 export async function radarBrief(database: D1Database, input: unknown = {}): Promise<RadarBrief> {
@@ -141,10 +143,10 @@ async function attachTrackCodes(database: D1Database, rows: LeadQueryRow[]): Pro
     list.push(row.track_code);
     grouped.set(row.lead_id, list);
   }
-  return rows.map((row) => ({
+  return attachCaseAuthors(database, rows.map((row) => ({
     ...row,
     track_codes: sortTrackCodes(grouped.get(row.id) ?? (row.track_code ? [row.track_code] : [])),
-  }));
+  })));
 }
 
 function toCard(lead: LeadRow, max: number): RadarCard {
@@ -175,6 +177,9 @@ function toCard(lead: LeadRow, max: number): RadarCard {
     signal: text(brief.signal),
     seen: text(brief.seen),
     fit: text(brief.fit),
+    author: brief.author,
+    related_cases: brief.related_cases,
+    related_cases_count: brief.related_cases_count,
   };
 }
 

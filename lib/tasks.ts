@@ -7,7 +7,7 @@ export type { TaskInput };
 
 export async function listTasks(database: D1Database = getDb()): Promise<AgentTaskRow[]> {
   const { results } = await database
-    .prepare("SELECT id, name, cadence, lookback_days, instruction, enabled, created_at FROM agent_tasks ORDER BY created_at DESC")
+    .prepare("SELECT id, name, task_type, cadence, lookback_days, instruction, enabled, created_at FROM agent_tasks ORDER BY created_at DESC")
     .all<AgentTaskRow>();
   return results;
 }
@@ -19,13 +19,13 @@ export async function createTask(input: TaskInput, database: D1Database = getDb(
   const now = new Date().toISOString();
   await database
     .prepare(
-      `INSERT INTO agent_tasks (id, name, cadence, lookback_days, instruction, enabled, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO agent_tasks (id, name, task_type, cadence, lookback_days, instruction, enabled, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(id, input.name, input.cadence, input.lookbackDays, input.instruction, input.enabled ? 1 : 0, now, now)
+    .bind(id, input.name, input.taskType, input.cadence, input.lookbackDays, input.instruction, input.enabled ? 1 : 0, now, now)
     .run();
   const created = await database
-    .prepare("SELECT id, name, cadence, lookback_days, instruction, enabled, created_at FROM agent_tasks WHERE id = ?")
+    .prepare("SELECT id, name, task_type, cadence, lookback_days, instruction, enabled, created_at FROM agent_tasks WHERE id = ?")
     .bind(id)
     .first<AgentTaskRow>();
   if (!created) throw new Error("任务已写入，但读取失败。");
@@ -46,7 +46,7 @@ export async function deleteTask(id: string, database: D1Database = getDb()): Pr
 
 export async function getTask(id: string, database: D1Database = getDb()): Promise<AgentTaskRow | null> {
   return database
-    .prepare("SELECT id, name, cadence, lookback_days, instruction, enabled, created_at FROM agent_tasks WHERE id = ?")
+    .prepare("SELECT id, name, task_type, cadence, lookback_days, instruction, enabled, created_at FROM agent_tasks WHERE id = ?")
     .bind(id)
     .first<AgentTaskRow>();
 }

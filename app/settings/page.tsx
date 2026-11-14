@@ -36,6 +36,9 @@ export default async function SettingsPage() {
           <VStack gap={3} id="agent-keys">
             <Heading level={2}>办公室钥匙</Heading>
             <AgentKeysForm keys={agentKeys} />
+            <Text type="supporting" as="p">
+              让办公室 Agent 重新读取 <Link href="/skill.md">安装与更新说明</Link>，更新已安装的技能和客户端，即可了解 OPC 案例采集。保留原钥匙和游标，每日阅读安排在北京时间 10:30。
+            </Text>
           </VStack>
         </Card>
         <Card>
@@ -65,7 +68,7 @@ export default async function SettingsPage() {
           <VStack gap={3} id="materials">
             <Heading level={2}>常用找素材的站点</Heading>
             <Text type="supporting" as="p">
-              记下你常去人工查找的地方。案例补全会读到这段说明。应用不会爬这些网站。
+              记下你常去人工查找的地方。案例补全会读到这段说明。OPC圈广场可通过任务自动采集，其他站点仍由人工录入。
             </Text>
             <MaterialSitesForm initial={materialSites} />
           </VStack>

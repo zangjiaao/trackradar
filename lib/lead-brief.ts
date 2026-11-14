@@ -1,6 +1,6 @@
-import type { LeadRow } from "@/lib/domain";
+import type { CaseAuthorFields, LeadRow } from "@/lib/domain";
 
-export type LeadBrief = {
+export type LeadBrief = CaseAuthorFields & {
   kind: "policy" | "case";
   title: string;
   url: string;
@@ -38,6 +38,9 @@ export function leadBrief(lead: LeadRow): LeadBrief {
   const summary = text(lead.summary);
   return {
     kind,
+    author: kind === "case" ? lead.author ?? null : null,
+    related_cases: kind === "case" ? lead.related_cases ?? [] : [],
+    related_cases_count: kind === "case" ? lead.related_cases_count ?? 0 : 0,
     title: lead.title,
     url: lead.url,
     tracks,

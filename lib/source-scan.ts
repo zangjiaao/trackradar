@@ -1,3 +1,4 @@
+import { withScanLog, type ScanProgress, type ScanStatus } from "./scan-log";
 import type { SourceRow } from "@/lib/domain";
 import { fetchPolicyList } from "@/lib/fetch-list";
 import { formatScanSourceMessage } from "@/lib/policy-collect";
@@ -30,6 +31,7 @@ export type ScanSourceResult = {
 };
 
 export type ScanResult = {
+  status: ScanStatus;
   saved: number;
   visited: number;
   sources: ScanSourceResult[];
@@ -62,7 +64,12 @@ async function insertJob(
 }
 
 /** 读已启用信源的列表页。先采集入库，再评分、过滤，只解读留下的政策。 */
-export async function runSourceScan(database: D1Database, request: ScanRequest): Promise<ScanResult> {
+export function runSourceScan(database: D1Database, request: ScanRequest): Promise<ScanResult> {
+  const title = request.taskName ? `${triggerLabel(request.trigger)}「${request.taskName}」` : triggerLabel(request.trigger);
+  return withScanLog(database, { kind: "task_run", title, taskId: request.taskId }, (progress) => scanSources(database, request, progress));
+}
+
+async function scanSources(database: D1Database, request: ScanRequest, progress: ScanProgress): Promise<ScanResult> {
   const lookbackDays = request.lookbackDays;
   const now = request.now ?? new Date();
   const fetchList = request.fetchList ?? fetchPolicyList;
@@ -72,6 +79,7 @@ export async function runSourceScan(database: D1Database, request: ScanRequest):
     .prepare("SELECT id, region, name, list_url, adapter, enabled, notes FROM sources WHERE enabled = 1 ORDER BY region, name")
     .all<SourceRow>();
   const sources = results.filter((source) => sourceMatches(source, hints));
+  await progress(`正在访问 ${sources.length} 个政策信源`);
   const deadline = Date.now() + (request.budgetMs ?? 55_000);
   const fetched: Array<{ source: SourceRow; items: { title: string; url: string }[]; error?: string; skipped: boolean }> = new Array(sources.length);
   let cursor = 0;
@@ -112,6 +120,7 @@ export async function runSourceScan(database: D1Database, request: ScanRequest):
       details.push({ sourceId: row.source.id, name: row.source.name, region: row.source.region, status: "failed", fetched: 0, saved: 0, message });
       continue;
     }
+    await progress(`正在采集与解读：${row.source.region}·${row.source.name}｜已处理 ${details.length} 个信源，写入政策 ${savedTotal}`);
     const tally = await ingestPolicyList({
       database,
       source: row.source,
@@ -144,6 +153,5 @@ export async function runSourceScan(database: D1Database, request: ScanRequest):
     ? `${who}｜回看 ${lookbackDays} 天｜访问 ${details.length} 个信源｜采集 ${collectedTotal}，评了 ${scoredTotal}，低分过滤 ${filteredTotal}，解读写入 ${savedTotal}。候选先入库。列表会翻到回看窗口内的后续页。有模型时读正文判断是否与工作室有关，并写一段解读；无关的不进入政策页。没有模型时不写入政策页。`
     : `${who}｜没有可访问的启用信源${hints.length ? `（地域：${hints.join("、")}）` : ""}。先到配置里打开信源。`;
   const status = sources.length === 0 ? "skipped" : details.some((item) => item.status === "done") ? "done" : details.every((item) => item.status === "skipped") ? "skipped" : "failed";
-  await insertJob(database, { kind: "task_run", status, message: summary, taskId: request.taskId });
-  return { saved: savedTotal, visited: details.length, sources: details, summary };
+  return { status, saved: savedTotal, visited: details.length, sources: details, summary };
 }

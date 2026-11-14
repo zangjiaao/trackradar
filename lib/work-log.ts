@@ -44,7 +44,7 @@ export async function listWork(limit = 80): Promise<WorkRow[]> {
   return results;
 }
 
-/** 清空全部执行记录，不删除定时任务。 */
+/** 清空已结束记录，保留执行中的记录和定时任务。 */
 export async function clearWorkLog(): Promise<number> {
   return clearCrawlJobs(getDb());
 }

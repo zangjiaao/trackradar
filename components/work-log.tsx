@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
-import { Card } from "@astryxdesign/core/Card";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -18,13 +16,6 @@ import {
   presentWorkMessage,
   type WorkLogItem,
 } from "@/lib/work-log-view";
-
-function statusVariant(status: string): "success" | "error" | "warning" | "neutral" {
-  if (status === "done") return "success";
-  if (status === "failed") return "error";
-  if (status === "skipped") return "warning";
-  return "neutral";
-}
 
 export function WorkLog({ jobs }: { jobs: WorkLogItem[] }) {
   const router = useRouter();
@@ -54,7 +45,7 @@ export function WorkLog({ jobs }: { jobs: WorkLogItem[] }) {
       <HStack gap={2} wrap="wrap" vAlign="center" justify="between">
         <Heading level={2}>执行记录</Heading>
         {jobs.length > 0 ? (
-          <Button label="清空记录" variant="ghost" isDisabled={pending} onClick={() => setConfirming(true)} />
+          <Button label="清空已结束记录" variant="ghost" isDisabled={pending} onClick={() => setConfirming(true)} />
         ) : null}
       </HStack>
       {jobs.length === 0 ? (
@@ -71,40 +62,38 @@ export function WorkLog({ jobs }: { jobs: WorkLogItem[] }) {
               .filter((part) => !view.title.includes(part.replace(" · ", "·")))
               .join(" · ");
             return (
-              <Card key={job.id} padding={3}>
-                <VStack gap={2}>
-                  <HStack gap={2} wrap="wrap" vAlign="center" justify="between">
-                    <HStack gap={2} wrap="wrap" vAlign="center">
-                      <Text weight="medium">{view.title}</Text>
-                      <Badge variant={statusVariant(job.status)} label={WORK_STATUS_LABEL[job.status] ?? job.status} />
-                    </HStack>
-                    <Text type="supporting">{formatWorkTime(job.created_at)}</Text>
+              <VStack key={job.id} gap={2}>
+                <HStack gap={2} wrap="wrap" vAlign="center" justify="between">
+                  <HStack gap={2} wrap="wrap" vAlign="center">
+                    <Text weight="medium">{view.title}</Text>
+                    <Text type="supporting">{WORK_STATUS_LABEL[job.status] ?? job.status}</Text>
                   </HStack>
-                  <Text type="supporting">{where ? `${kind} · ${where}` : kind}</Text>
-                  {view.chips.length > 0 ? (
-                    <HStack gap={2} wrap="wrap">
-                      {view.chips.map((chip, index) => (
-                        <Text key={`${chip}-${index}`}>{chip}</Text>
-                      ))}
-                    </HStack>
-                  ) : null}
-                  {view.notes.map((note, index) => (
-                    <Text key={`${note}-${index}`} as="p">
-                      {note}
-                    </Text>
-                  ))}
-                </VStack>
-              </Card>
+                  <Text type="supporting">{formatWorkTime(job.created_at)}</Text>
+                </HStack>
+                <Text type="supporting">{where ? `${kind} · ${where}` : kind}</Text>
+                {view.chips.length > 0 ? (
+                  <HStack gap={2} wrap="wrap">
+                    {view.chips.map((chip, index) => (
+                      <Text key={`${chip}-${index}`}>{chip}</Text>
+                    ))}
+                  </HStack>
+                ) : null}
+                {view.notes.map((note, index) => (
+                  <Text key={`${note}-${index}`} as="p">
+                    {note}
+                  </Text>
+                ))}
+              </VStack>
             );
           })}
         </VStack>
       )}
-      <Dialog isOpen={confirming} onOpenChange={setConfirming} purpose="info" width="min(28rem, calc(100vw - 2rem))">
+      <Dialog isOpen={confirming} onOpenChange={setConfirming} purpose="info">
         <Layout
           header={
             <DialogHeader
-              title="清空执行记录"
-              subtitle="只清掉这些日志。上面的定时任务还留着。"
+              title="清空已结束记录"
+              subtitle="执行中的记录会保留，定时任务也会保留。"
               onOpenChange={setConfirming}
             />
           }

@@ -72,6 +72,9 @@ function openDatabase() {
       relevance_reason TEXT,
       updated_at TEXT
     );
+    CREATE TABLE case_candidates (
+      url TEXT PRIMARY KEY, lead_id TEXT, stage TEXT, relevance_score INTEGER, relevance_reason TEXT
+    );
     CREATE TABLE lead_tracks (
       lead_id TEXT NOT NULL,
       track_code TEXT NOT NULL,

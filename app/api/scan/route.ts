@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/db";
 import { runSourceScan } from "@/lib/source-scan";
 import { normalizeLookback } from "@/lib/source-window";
+import { runTask } from "@/lib/task-run";
 import { getTask } from "@/lib/tasks";
 
 export const dynamic = "force-dynamic";
@@ -13,13 +14,13 @@ export async function POST(request: Request) {
     const taskId = typeof body.taskId === "string" ? body.taskId : null;
     const task = taskId ? await getTask(taskId, database) : null;
     if (taskId && !task) return Response.json({ error: "找不到这个任务。" }, { status: 404 });
-    const result = await runSourceScan(database, {
-      lookbackDays: task ? task.lookback_days : normalizeLookback(body.lookbackDays),
-      taskId: task?.id ?? null,
-      taskName: task?.name ?? null,
+    const result = task ? await runTask(database, task, "manual") : await runSourceScan(database, {
+      lookbackDays: normalizeLookback(body.lookbackDays),
+      taskId: null,
+      taskName: null,
       trigger: "manual",
       region: typeof body.region === "string" ? body.region : null,
-      instruction: task?.instruction ?? (typeof body.instruction === "string" ? body.instruction : null),
+      instruction: (typeof body.instruction === "string" ? body.instruction : null),
     });
     return Response.json(result);
   } catch (error) {
